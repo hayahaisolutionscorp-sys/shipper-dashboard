@@ -1,0 +1,5 @@
+{
+  "templateDir": "./src/email/templates",
+  "outDir": "./dist/email/templates",
+  "baseUrl": "http://localhost:3000"
+}
