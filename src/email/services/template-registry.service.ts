@@ -142,7 +142,7 @@ export class TemplateRegistryService {
     } else if (options.validateVariables !== false) {
       // Default validation based on schema
       validationResult = this.validateVariablesAgainstSchema(
-        variables as Record<string, unknown>,
+        variables as unknown as Record<string, unknown>,
         template.schema.variables,
       );
 

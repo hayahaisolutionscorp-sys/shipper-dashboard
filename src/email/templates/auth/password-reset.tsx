@@ -20,7 +20,7 @@ interface AyahayPasswordResetProps {
   expirationTime?: string;
 }
 
-export default function AyahayPasswordReset({
+function AyahayPasswordReset({
   name = 'there',
   resetUrl,
   expirationTime = '24 hours',
@@ -337,3 +337,9 @@ const link = {
   fontFamily,
   textDecoration: 'none',
 };
+
+// Named export for consistency with other templates
+export const PasswordResetEmail = AyahayPasswordReset;
+
+// Default export
+export default AyahayPasswordReset;

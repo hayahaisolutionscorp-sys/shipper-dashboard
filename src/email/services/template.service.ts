@@ -44,7 +44,7 @@ export class TemplateService {
 
     const result = await this.templateRegistry.renderTemplate(
       mappedName as keyof TemplateVariableRegistry,
-      variables,
+      variables as any,
       { validateVariables: true },
     );
     return result.template;
