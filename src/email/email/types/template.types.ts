@@ -28,7 +28,7 @@ export enum TemplateCategory {
 
 export interface TemplateVariable {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'url' | 'email';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'url' | 'email' | 'object' | 'array';
   required: boolean;
   description: string;
   defaultValue?: any;

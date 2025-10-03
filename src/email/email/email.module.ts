@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { RedisService } from '../redis/redis.service';
+import { RedisService } from '../../redis/redis.service';
 import { TemplateService } from './services/template.service';
 import { TemplateRegistryService } from './services/template-registry.service';
 import { TemplateLoaderService } from './services/template-loader.service';

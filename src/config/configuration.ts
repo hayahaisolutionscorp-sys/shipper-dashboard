@@ -1,7 +1,7 @@
 import {
   validateConfig,
   type EmailConfig,
-} from '../email/config/email.config.schema';
+} from '../email/email/config/email.config.schema';
 
 export default (): EmailConfig => {
   const config = {

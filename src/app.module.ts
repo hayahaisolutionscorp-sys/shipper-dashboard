@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { EmailModule } from './email/email.module';
+import { EmailModule } from './email/email/email.module';
 import configuration from './config/configuration';
 
 @Module({
