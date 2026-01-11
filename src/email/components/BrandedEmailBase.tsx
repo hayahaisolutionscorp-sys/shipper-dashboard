@@ -142,7 +142,7 @@ function getBrandStyles(brand: BrandContext) {
     },
     header: {
       backgroundColor: primaryColor,
-      padding: '32px 40px',
+      padding: '30px 20px',
       textAlign: 'center' as const,
     },
     logo: {
@@ -152,11 +152,11 @@ function getBrandStyles(brand: BrandContext) {
       height: 'auto',
     },
     content: {
-      padding: '40px',
+      padding: '40px 35px 30px',
     },
     footer: {
       backgroundColor: '#F9FAFB',
-      padding: '32px 40px',
+      padding: '25px 35px 35px',
       borderTop: '1px solid #E5E7EB',
       textAlign: 'center' as const,
     },

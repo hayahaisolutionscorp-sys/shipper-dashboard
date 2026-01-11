@@ -13,29 +13,27 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 
-interface AyahayEmailVerificationProps {
+interface AyahayPasswordResetCodeProps {
   name?: string;
-  verificationCode?: string;
-  verificationUrl?: string;
+  resetCode?: string;
   expiresIn?: string;
 }
 
-export default function AyahayEmailVerification({
+export default function AyahayPasswordResetCode({
   name = 'there',
-  verificationCode,
-  verificationUrl,
-  expiresIn = '10 minutes',
-}: AyahayEmailVerificationProps) {
+  resetCode,
+  expiresIn = '5 minutes',
+}: AyahayPasswordResetCodeProps) {
   return (
     <Html>
       <Head />
       <Body style={main}>
-        <Preview>Verify your email address for Ayahay</Preview>
+        <Preview>Your password reset code for Ayahay</Preview>
         <Container style={container}>
           <Section style={coverSection}>
             <Section style={headerSection}>
               <Img
-                src={`/assets/images/logo.png`}
+                src="https://ayahay-v2-assets.s3.ap-southeast-2.amazonaws.com/whitelabel/1/logo/AYAHAY+SHIPPING+LINES.png"
                 width="60"
                 height="60"
                 alt="Ayahay Logo"
@@ -44,35 +42,28 @@ export default function AyahayEmailVerification({
               <Text style={brandText}>Ayahay</Text>
             </Section>
             <Section style={upperSection}>
-              <Heading style={h1}>Verify your email address</Heading>
+              <Heading style={h1}>Reset your password</Heading>
               <Text style={greetingText}>Hello {name},</Text>
               <Text style={mainText}>
-                Welcome to Ayahay! To complete your account setup and start
-                using our platform, please verify your email address by using
-                the verification code below.
+                We received a request to reset your password. Use the verification code below to proceed with resetting your password.
               </Text>
               <Section style={verificationSection}>
-                <Text style={verifyText}>Your verification code</Text>
-                <Text style={codeText}>{verificationCode}</Text>
+                <Text style={verifyText}>Your reset code</Text>
+                <Text style={codeText}>{resetCode}</Text>
                 <Text style={validityText}>
                   This code expires in {expiresIn}
                 </Text>
-                {verificationUrl && (
-                  <>
-                    <Text style={orText}>Or click the button below:</Text>
-                    <Link href={verificationUrl} style={buttonStyle}>
-                      Verify Email Address
-                    </Link>
-                  </>
-                )}
               </Section>
+              <Text style={mainText}>
+                If you didn't request a password reset, you can safely ignore this email.
+              </Text>
             </Section>
             <Hr style={hrStyle} />
             <Section style={lowerSection}>
               <Text style={cautionText}>
                 Security Note: Ayahay will never ask you to share your
-                password, credit card, or banking information via email. If you
-                didn't request this verification, please ignore this email.
+                password or OTP code via email or phone. If you
+                didn't request this reset, please contact support immediately.
               </Text>
             </Section>
           </Section>
@@ -104,7 +95,7 @@ export default function AyahayEmailVerification({
             </Section>
           </Section>
           <Text style={footerText}>
-            This email verification was sent by Ayahay. © 2024, Ayahay. All
+            This email was sent by Ayahay. © 2024, Ayahay. All
             rights reserved.
             <br />
             <Link
@@ -127,12 +118,11 @@ export default function AyahayEmailVerification({
   );
 }
 
-AyahayEmailVerification.PreviewProps = {
+AyahayPasswordResetCode.PreviewProps = {
   name: 'John Doe',
-  verificationCode: '485729',
-  verificationUrl: 'https://ayahay.com/verify?token=abc123',
-  expiresIn: '10 minutes',
-} satisfies AyahayEmailVerificationProps;
+  resetCode: '123456',
+  expiresIn: '5 minutes',
+} satisfies AyahayPasswordResetCodeProps;
 
 // Ayahay Brand Colors
 const AYAHAY_BLUE = '#24AAFF';
@@ -169,7 +159,7 @@ const headerSection = {
   padding: '30px 20px',
   textAlign: 'center' as const,
   display: 'flex',
-  flexDirection: 'row' as const, // 👈 makes it a row
+  flexDirection: 'row' as const,
   alignItems: 'center',
   justifyContent: 'center',
   gap: '15px',
@@ -255,27 +245,6 @@ const validityText = {
   fontFamily,
   fontSize: '14px',
   margin: '0 0 20px 0',
-};
-
-const orText = {
-  color: AYAHAY_MEDIUM_GRAY,
-  fontFamily,
-  fontSize: '14px',
-  margin: '20px 0 15px 0',
-};
-
-const buttonStyle = {
-  backgroundColor: AYAHAY_BLUE,
-  color: AYAHAY_WHITE,
-  fontFamily,
-  fontSize: '16px',
-  fontWeight: '600',
-  padding: '12px 30px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  display: 'inline-block',
-  margin: '10px 0',
-  transition: 'background-color 0.2s ease',
 };
 
 const hrStyle = {

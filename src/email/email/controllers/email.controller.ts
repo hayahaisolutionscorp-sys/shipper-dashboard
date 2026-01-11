@@ -19,6 +19,7 @@ import {
   SendEmailDto,
   WelcomeEmailDto,
   PasswordResetEmailDto,
+  PasswordResetCodeEmailDto,
   BulkEmailDto,
   ScheduleEmailDto,
 } from '../dto/email.dto';
@@ -172,7 +173,7 @@ export class EmailController {
           resetUrl: dto.resetUrl,
           expirationTime: dto.expirationTime,
         },
-        { priority: dto.priority },
+        { priority: dto.priority }
       );
       return {
         success: true,
@@ -183,6 +184,70 @@ export class EmailController {
       return {
         success: false,
         message: 'Failed to queue password reset email',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      };
+    }
+  }
+
+  @Post('send/password-reset-code')
+  @ApiOperation({ summary: 'Send a password reset email with an OTP code' })
+  @ApiBody({ type: PasswordResetCodeEmailDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password reset code queued successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Password reset code queued for user@example.com',
+        statusCode: 200,
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+    schema: {
+      example: {
+        success: false,
+        message: 'Failed to queue password reset code',
+        error: 'Validation failed (email is expected)',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to queue password reset code',
+    schema: {
+      example: {
+        success: false,
+        message: 'Failed to queue password reset code',
+        error: 'Template not found',
+        statusCode: 500,
+      },
+    },
+  })
+  async sendPasswordResetCode(@Body() dto: PasswordResetCodeEmailDto) {
+    try {
+      await this.emailQueueService.sendPasswordResetCode(
+        dto.to,
+        {
+          name: dto.name,
+          resetCode: dto.code,
+          expiresIn: dto.expirationTime,
+        },
+        { priority: dto.priority },
+      );
+      return {
+        success: true,
+        message: `Password reset code queued for ${dto.to}`,
+        statusCode: HttpStatus.OK,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to queue password reset code',
         error: error instanceof Error ? error.message : 'Unknown error',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       };

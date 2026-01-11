@@ -130,6 +130,13 @@ export interface EmailVerificationTemplateVariables {
   expiresIn?: string;
 }
 
+export interface PasswordResetCodeTemplateVariables {
+  name?: string;
+  resetCode: string;
+  expiresIn?: string;
+  supportEmail?: string;
+}
+
 // Legacy alias for backwards compatibility
 export interface MagicLinkTemplateVariables extends EmailVerificationTemplateVariables {}
 
@@ -137,6 +144,7 @@ export interface MagicLinkTemplateVariables extends EmailVerificationTemplateVar
 export interface TemplateVariableRegistry {
   welcome: WelcomeTemplateVariables;
   password_reset: PasswordResetTemplateVariables;
+  password_reset_code: PasswordResetCodeTemplateVariables;
   email_verification: EmailVerificationTemplateVariables;
 }
 

@@ -12,7 +12,7 @@ import {
   Section,
   Text,
 } from '@react-email/components';
-import React from 'react';
+import * as React from 'react';
 
 interface AyahayPasswordResetProps {
   name?: string;
@@ -34,7 +34,7 @@ function AyahayPasswordReset({
           <Section style={coverSection}>
             <Section style={headerSection}>
               <Img
-                src={`/assets/images/logo.png`}
+                src={`https://ayahay-v2-assets.s3.ap-southeast-2.amazonaws.com/whitelabel/1/logo/AYAHAY+SHIPPING+LINES.png`}
                 width="60"
                 height="60"
                 alt="Ayahay Logo"
