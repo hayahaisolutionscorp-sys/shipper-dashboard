@@ -145,7 +145,7 @@ export class PasswordResetEmailDto {
   to: string;
 
   @ApiPropertyOptional({
-    description: 'User\'s name (optional for personalization)',
+    description: "User's name (optional for personalization)",
     example: 'Maria Santos',
   })
   @IsOptional()
@@ -162,6 +162,48 @@ export class PasswordResetEmailDto {
   @ApiPropertyOptional({
     description: 'How long the reset link is valid for',
     example: '1 hour',
+  })
+  @IsOptional()
+  @IsString()
+  expirationTime?: string;
+
+  @ApiPropertyOptional({
+    description: 'Priority level for email processing',
+    enum: EmailPriority,
+    example: EmailPriority.HIGH,
+    default: EmailPriority.NORMAL,
+  })
+  @IsOptional()
+  @IsEnum(EmailPriority)
+  priority?: EmailPriority;
+}
+
+export class PasswordResetCodeEmailDto {
+  @ApiProperty({
+    description: 'Recipient email address',
+    example: 'user@example.com',
+  })
+  @IsEmail()
+  to: string;
+
+  @ApiPropertyOptional({
+    description: "User's name (optional for personalization)",
+    example: 'Maria Santos',
+  })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({
+    description: '6-digit OTP reset code',
+    example: '123456',
+  })
+  @IsString()
+  code: string;
+
+  @ApiPropertyOptional({
+    description: 'How long the reset code is valid for',
+    example: '5 minutes',
   })
   @IsOptional()
   @IsString()

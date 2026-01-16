@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { TemplateRegistryService } from './template-registry.service';
 import { welcomeTemplateDefinition } from '../templates/welcome/welcome.definition';
 import { passwordResetTemplateDefinition } from '../templates/auth/password-reset.definition';
+import { passwordResetCodeTemplateDefinition } from '../templates/auth/password-reset-code.definition';
 import { emailVerificationTemplateDefinition } from '../templates/auth/email-verification.definition';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class TemplateLoaderService implements OnModuleInit {
     const templates = [
       welcomeTemplateDefinition,
       passwordResetTemplateDefinition,
+      passwordResetCodeTemplateDefinition,
       emailVerificationTemplateDefinition,
     ];
 

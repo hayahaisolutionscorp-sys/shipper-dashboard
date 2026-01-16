@@ -97,6 +97,20 @@ export class EmailQueueService {
     });
   }
 
+  async sendPasswordResetCode(
+    to: string,
+    variables: { name?: string; resetCode: string; expiresIn?: string },
+    options?: { priority?: EmailJobData['priority']; delay?: number },
+  ): Promise<void> {
+    return this.addEmailJob({
+      to,
+      templateName: 'password_reset_code',
+      templateVariables: variables,
+      priority: options?.priority || 'high',
+      delay: options?.delay,
+    });
+  }
+
   async scheduleEmail(
     jobData: EmailJobData,
     scheduledAt: Date,

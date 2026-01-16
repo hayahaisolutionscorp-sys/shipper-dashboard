@@ -3,10 +3,12 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
   Img,
   Link,
   Preview,
+  Section,
   Text,
 } from '@react-email/components';
 import * as React from 'react';
@@ -21,43 +23,100 @@ export const WelcomeEmail = ({ name, appName, dashboardUrl }: WelcomeEmailProps)
   return (
     <Html>
       <Head />
-      <Preview>Welcome to Ayahay - Your Logistics Solution!</Preview>
       <Body style={main}>
+        <Preview>Welcome to Ayahay - Your Logistics Solution!</Preview>
         <Container style={container}>
-          <Img
-            src="https://yourdomain.com/static/images/logo.png"
-            alt="Ayahay Logo"
-            style={logo}
-          />
-          <Heading style={h1}>Welcome to Ayahay!</Heading>
-          <Text style={text}>Hello {name},</Text>
-          <Text style={text}>
-            Welcome to Ayahay, the comprehensive logistics software designed specifically for shipping companies. 
-            We're excited to have you join our platform and streamline your shipping operations!
-          </Text>
-          <Text style={text}>
-            With Ayahay, you can efficiently manage your fleet, track shipments, optimize routes, 
-            and enhance your overall logistics workflow. Our platform is built to handle the unique 
-            challenges of the shipping industry.
-          </Text>
-          {dashboardUrl && (
-            <Text style={text}>
-              <Link href={dashboardUrl} style={link}>
-                Access your logistics dashboard
+          <Section style={coverSection}>
+            <Section style={headerSection}>
+              <Img
+                src="https://ayahay-v2-assets.s3.ap-southeast-2.amazonaws.com/whitelabel/1/logo/AYAHAY+SHIPPING+LINES.png"
+                width="60"
+                height="60"
+                alt="Ayahay Logo"
+                style={logoStyle}
+              />
+              <Text style={brandText}>Ayahay</Text>
+            </Section>
+            <Section style={upperSection}>
+              <Heading style={h1}>Welcome to Ayahay!</Heading>
+              <Text style={greetingText}>Hello {name},</Text>
+              <Text style={mainText}>
+                Welcome to Ayahay, the comprehensive logistics software designed specifically for shipping companies. 
+                We're excited to have you join our platform and streamline your shipping operations!
+              </Text>
+              <Text style={mainText}>
+                With Ayahay, you can efficiently manage your fleet, track shipments, optimize routes, 
+                and enhance your overall logistics workflow. Our platform is built to handle the unique 
+                challenges of the shipping industry.
+              </Text>
+              {dashboardUrl && (
+                <Section style={buttonSection}>
+                  <Link href={dashboardUrl} style={resetButton}>
+                    Access Your Dashboard
+                  </Link>
+                </Section>
+              )}
+              <Text style={mainText}>
+                Our support team is ready to help you get started with managing your shipping operations. 
+                Don't hesitate to reach out if you need assistance setting up your fleet or configuring 
+                your logistics workflows.
+              </Text>
+            </Section>
+            <Hr style={hrStyle} />
+            <Section style={lowerSection}>
+              <Text style={cautionText}>
+                Best regards,
+                <br />
+                The Ayahay Team
+                <br />
+                <em>Your Partner in Shipping Excellence</em>
+              </Text>
+            </Section>
+          </Section>
+          <Section style={socialSection}>
+            <Text style={socialText}>Follow us on social media:</Text>
+            <Section style={socialLinksSection}>
+              <Link
+                href="https://www.facebook.com/profile.php?id=61551614079847"
+                target="_blank"
+                style={socialLinkStyle}
+              >
+                <Img
+                  src="https://cdn-icons-png.flaticon.com/512/124/124010.png"
+                  width="32"
+                  height="32"
+                  alt="Facebook"
+                  style={socialIconStyle}
+                />
               </Link>
-            </Text>
-          )}
-          <Text style={text}>
-            Our support team is ready to help you get started with managing your shipping operations. 
-            Don't hesitate to reach out if you need assistance setting up your fleet or configuring 
-            your logistics workflows.
-          </Text>
-          <Text style={text}>
-            Best regards,
+              <Link href="mailto:admin@ayahay.com" style={socialLinkStyle}>
+                <Img
+                  src="https://cdn-icons-png.flaticon.com/512/732/732200.png"
+                  width="32"
+                  height="32"
+                  alt="Email"
+                  style={socialIconStyle}
+                />
+              </Link>
+            </Section>
+          </Section>
+          <Text style={footerText}>
+            This email was sent by Ayahay. © 2024, Ayahay. All
+            rights reserved.
             <br />
-            The Ayahay Team
+            <Link
+              href="https://ayahay.com/privacy"
+              target="_blank"
+              style={link}
+            >
+              Privacy Policy
+            </Link>
+            {' | '}
+            <Link href="https://ayahay.com/terms" target="_blank" style={link}>
+              Terms of Service
+            </Link>
             <br />
-            <em>Your Partner in Shipping Excellence</em>
+            Contact us: <Link href="mailto:admin@ayahay.com" style={link}>admin@ayahay.com</Link>
           </Text>
         </Container>
       </Body>
@@ -65,44 +124,181 @@ export const WelcomeEmail = ({ name, appName, dashboardUrl }: WelcomeEmailProps)
   );
 };
 
+// Ayahay Brand Colors
+const AYAHAY_BLUE = '#24AAFF';
+const AYAHAY_WHITE = '#FFFFFF';
+const AYAHAY_DARK = '#1A1A1A';
+const AYAHAY_LIGHT_GRAY = '#F8F9FA';
+const AYAHAY_MEDIUM_GRAY = '#6C757D';
+
+const fontFamily =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif";
+
 const main = {
-  backgroundColor: '#f6f9fc',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  backgroundColor: AYAHAY_LIGHT_GRAY,
+  color: AYAHAY_DARK,
+  fontFamily,
 };
 
 const container = {
-  backgroundColor: '#ffffff',
+  padding: '20px',
   margin: '0 auto',
-  padding: '20px 0 48px',
-  marginBottom: '64px',
-  maxWidth: '580px',
+  backgroundColor: AYAHAY_LIGHT_GRAY,
+  maxWidth: '600px',
+};
+
+const coverSection = {
+  backgroundColor: AYAHAY_WHITE,
+  borderRadius: '12px',
+  overflow: 'hidden',
+  boxShadow: '0 4px 12px rgba(36, 170, 255, 0.1)',
+};
+
+const headerSection = {
+  backgroundColor: AYAHAY_WHITE,
+  padding: '30px 20px',
+  textAlign: 'center' as const,
+  display: 'flex',
+  flexDirection: 'row' as const,
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '15px',
+};
+
+const logoStyle = {
+  borderRadius: '8px',
+};
+
+const brandText = {
+  color: 'black',
+  fontFamily,
+  fontSize: '28px',
+  fontWeight: 'bold',
+  margin: '0',
+  letterSpacing: '-0.5px',
+};
+
+const upperSection = {
+  padding: '40px 35px 30px',
 };
 
 const h1 = {
-  color: '#333',
+  color: AYAHAY_DARK,
+  fontFamily,
   fontSize: '24px',
   fontWeight: 'bold',
-  margin: '40px 0',
-  padding: '0',
+  marginBottom: '20px',
+  textAlign: 'center' as const,
 };
 
-const text = {
-  color: '#333',
+const greetingText = {
+  color: AYAHAY_DARK,
+  fontFamily,
   fontSize: '16px',
-  margin: '24px 0',
+  fontWeight: '500',
+  margin: '0 0 16px 0',
+};
+
+const mainText = {
+  color: AYAHAY_MEDIUM_GRAY,
+  fontFamily,
+  fontSize: '16px',
+  lineHeight: '1.5',
+  margin: '0 0 20px 0',
+};
+
+const buttonSection = {
+  textAlign: 'center' as const,
+  margin: '30px 0',
+};
+
+const resetButton = {
+  backgroundColor: AYAHAY_BLUE,
+  color: AYAHAY_WHITE,
+  fontFamily,
+  fontSize: '16px',
+  fontWeight: '600',
+  padding: '14px 32px',
+  borderRadius: '8px',
+  textDecoration: 'none',
+  display: 'inline-block',
+  margin: '0 auto',
+  transition: 'background-color 0.2s ease',
+};
+
+const hrStyle = {
+  borderColor: `${AYAHAY_BLUE}20`,
+  margin: '0',
+};
+
+const lowerSection = {
+  padding: '25px 35px 35px',
+};
+
+const cautionText = {
+  color: AYAHAY_MEDIUM_GRAY,
+  fontFamily,
+  fontSize: '14px',
+  lineHeight: '1.4',
+  margin: '0',
+  textAlign: 'center' as const,
+  backgroundColor: `${AYAHAY_BLUE}05`,
+  padding: '15px',
+  borderRadius: '8px',
+  border: `1px solid ${AYAHAY_BLUE}15`,
+};
+
+const socialSection = {
+  backgroundColor: AYAHAY_LIGHT_GRAY,
+  padding: '25px 35px',
+  textAlign: 'center' as const,
+  borderTop: `1px solid ${AYAHAY_BLUE}15`,
+};
+
+const socialText = {
+  color: '#000000',
+  fontFamily,
+  fontSize: '16px',
+  fontWeight: '600',
+  margin: '0 0 18px 0',
+};
+
+const socialLinksSection = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: '20px',
+};
+
+const socialLinkStyle = {
+  display: 'inline-block',
+  padding: '8px',
+  backgroundColor: AYAHAY_WHITE,
+  borderRadius: '50%',
+  textDecoration: 'none',
+  border: `2px solid ${AYAHAY_BLUE}20`,
+  transition: 'all 0.2s ease',
+};
+
+const socialIconStyle = {
+  borderRadius: '0',
+  display: 'block',
+};
+
+const footerText = {
+  color: AYAHAY_MEDIUM_GRAY,
+  fontFamily,
+  fontSize: '12px',
+  lineHeight: '1.4',
+  padding: '20px',
+  textAlign: 'center' as const,
+  margin: '0',
 };
 
 const link = {
-  color: '#556cd6',
-  textDecoration: 'underline',
-};
-
-const logo = {
-  margin: '0 auto 40px',
-  display: 'block',
-  maxWidth: '200px',
-  height: 'auto',
+  color: AYAHAY_BLUE,
+  fontFamily,
+  textDecoration: 'none',
 };
 
 export default WelcomeEmail;

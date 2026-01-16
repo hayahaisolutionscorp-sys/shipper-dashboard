@@ -1,5 +1,5 @@
 import { Preview, Section, Hr } from '@react-email/components';
-import React from 'react';
+import * as React from 'react';
 import { BrandContext } from '../../types/brand.types';
 import {
   BrandedEmailBase,
