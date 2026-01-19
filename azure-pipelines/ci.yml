@@ -1,0 +1,75 @@
+# Runs ONLY for PRs targeting main
+trigger: none
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - main
+      
+  paths:
+    include:
+      - "**/*"
+    exclude:
+      - "**/*.md"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+
+pool:
+  name: onprem
+
+variables:
+  NODE_VERSION: "18.x"
+  PNPM_STORE_PATH: "$(Pipeline.Workspace)/.pnpm-store"
+
+steps:
+  - checkout: self
+    clean: true
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "$(NODE_VERSION)"
+    displayName: "Use Node $(NODE_VERSION)"
+
+  # Enable pnpm via Corepack (comes with Node 16.13+)
+  - script: |
+      corepack enable
+      pnpm --version
+    displayName: "Enable pnpm (corepack)"
+
+  # Cache pnpm store
+  - task: Cache@2
+    inputs:
+      key: 'pnpm | "$(Agent.OS)" | pnpm-lock.yaml'
+      restoreKeys: |
+        pnpm | "$(Agent.OS)"
+      path: "$(PNPM_STORE_PATH)"
+    displayName: "Cache pnpm store"
+
+  - script: |
+      set -e
+      pnpm config set store-dir "$(PNPM_STORE_PATH)"
+      # Reduce concurrency to avoid EAGAIN on slower filesystems
+      pnpm config set network-concurrency 4
+      pnpm config set child-concurrency 2
+
+      # First try
+      pnpm install --frozen-lockfile || (
+        echo "pnpm install failed, retrying after cleanup..." &&
+        rm -rf node_modules &&
+        pnpm install --frozen-lockfile
+      )
+    displayName: "Install dependencies (pnpm)"
+
+  #- script: |
+  #    if pnpm -s run | grep -q " test"; then
+  #      pnpm test
+  #    else
+  #      echo "No test script; skipping."
+  #    fi
+  #  displayName: "Test"
+
+  - script: |
+      pnpm run build
+    displayName: "Build"
