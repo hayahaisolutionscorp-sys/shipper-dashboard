@@ -44,7 +44,7 @@ stages:
             ;;
         esac
 
-        ECR_REPO="ayahay-client-api-${ENV_NAME}"
+        ECR_REPO="ayahay-email-api-${ENV_NAME}"
 
         DOCKER_TAG="build-$BUILD_BUILDID"
         SHORT_SHA="$(echo $BUILD_SOURCEVERSION | cut -c1-7)"
