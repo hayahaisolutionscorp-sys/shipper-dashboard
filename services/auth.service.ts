@@ -109,6 +109,99 @@ export interface AssignedRoute {
   };
 }
 
+export interface PaymentProvider {
+  id: number;
+  code: string;
+  name: string;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepositMethodConfig {
+  code: "gcash" | "paymaya" | "grabpay" | "qrph" | "cards" | "bank_transfer";
+  name: string;
+  kind: "instant" | "manual";
+  min_amount: number;
+  max_amount: number;
+  split_limit: number;
+  requires_reference: boolean;
+  requires_proof: boolean;
+  is_enabled: boolean;
+  provider_code: "paymongo" | "maya" | null;
+  gateway_method: string | null;
+}
+
+export interface SplitDepositLegPayload {
+  amount: number;
+  legType: "instant" | "manual";
+  paymentMethod: string;
+  paymentProvider?: string;
+  userReferenceNumber?: string;
+  proofUrl?: string;
+}
+
+export interface CreateSplitDepositPayload {
+  totalAmount: number;
+  legs: SplitDepositLegPayload[];
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
+export interface CreateSplitDepositResponse {
+  splitTransactionId: string;
+  referenceCode: string;
+  totalAmount: number;
+  paidAmount: number;
+  status: "pending" | "partial_paid" | "fully_paid" | "failed" | "cancelled";
+  checkoutUrl?: string;
+  checkoutSessionId?: string;
+  requiresManualReview: boolean;
+}
+
+export interface ShipperSplitDepositLeg {
+  id: string;
+  split_transaction_id: string;
+  leg_order: number;
+  amount: string;
+  leg_type: "instant" | "manual";
+  provider_code: string | null;
+  payment_method: string | null;
+  status: "pending" | "processing" | "for_verification" | "paid" | "rejected" | "failed" | "expired";
+  checkout_session_id: string | null;
+  payment_intent_id: string | null;
+}
+
+export interface ShipperSplitDepositTransactionDetails {
+  id: string;
+  shipper_id: string;
+  reference_code: string;
+  total_amount: string;
+  paid_amount: string;
+  status: "pending" | "partial_paid" | "fully_paid" | "failed" | "cancelled";
+  created_at: string;
+  updated_at: string;
+  legs: ShipperSplitDepositLeg[];
+}
+
+export interface ShipperTopUpRequest {
+  id: number;
+  shipper_id: string;
+  shipper_name: string;
+  amount: string;
+  payment_method: string;
+  user_reference_number: string;
+  deposit_reference: string;
+  proof_url: string | null;
+  status: "for_verification" | "success" | "rejected";
+  rejection_reason: string | null;
+  created_at: string;
+  processed_at: string | null;
+  split_transaction_id: string | null;
+  split_reference_code: string | null;
+  split_status: string | null;
+}
+
 /** Maps the ConnectingTripDto shape returned by the v2 API onto the flat TripResult the UI consumes */
 function mapConnectingTripToTripResult(raw: any): TripResult {
   const firstSegment = raw.segments?.[0];
@@ -141,6 +234,37 @@ function mapConnectingTripToTripResult(raw: any): TripResult {
 class AuthService {
   private isRefreshing = false;
   private refreshPromise: Promise<boolean> | null = null;
+
+  private normalizeSplitDepositResponse(payload: any): CreateSplitDepositResponse {
+    const candidate = payload?.splitTransactionId
+      ? payload
+      : payload?.data?.splitTransactionId
+        ? payload.data
+        : payload?.data?.data?.splitTransactionId
+          ? payload.data.data
+          : null;
+
+    if (!candidate?.splitTransactionId) {
+      throw new Error("Payment provider response is missing split transaction details.");
+    }
+
+    return {
+      splitTransactionId: String(candidate.splitTransactionId),
+      referenceCode: String(candidate.referenceCode ?? ""),
+      totalAmount: Number(candidate.totalAmount ?? 0),
+      paidAmount: Number(candidate.paidAmount ?? 0),
+      status: (candidate.status ?? "pending") as CreateSplitDepositResponse["status"],
+      checkoutUrl:
+        typeof candidate.checkoutUrl === "string" && candidate.checkoutUrl.length > 0
+          ? candidate.checkoutUrl
+          : undefined,
+      checkoutSessionId:
+        typeof candidate.checkoutSessionId === "string" && candidate.checkoutSessionId.length > 0
+          ? candidate.checkoutSessionId
+          : undefined,
+      requiresManualReview: Boolean(candidate.requiresManualReview),
+    };
+  }
 
   private clearAuth() {
     localStorage.removeItem("shipper_data");
@@ -565,6 +689,102 @@ class AuthService {
       method: "POST",
       body: JSON.stringify({ amount }),
     });
+  }
+
+  async getEnabledPaymentProviders(): Promise<PaymentProvider[]> {
+    const response = await fetch(`${API_BASE_URL}/payments/providers/enabled`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Failed to fetch payment providers" }));
+      throw new Error(error.message || "Failed to fetch payment providers");
+    }
+
+    const responseBody = await response.json();
+    return responseBody.data ?? responseBody;
+  }
+
+  async getDepositMethods(): Promise<DepositMethodConfig[]> {
+    const response = await fetch(`${API_BASE_URL}/payments/providers/deposit-methods`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Failed to fetch deposit methods" }));
+      throw new Error(error.message || "Failed to fetch deposit methods");
+    }
+
+    const responseBody = await response.json();
+    return responseBody.data ?? responseBody;
+  }
+
+  async createPaymongoShipperSplitDeposit(
+    payload: CreateSplitDepositPayload,
+  ): Promise<CreateSplitDepositResponse> {
+    const response = await this.fetchWithAuth("/v2/payments/paymongo/shipper/split-deposit", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    return this.normalizeSplitDepositResponse(response);
+  }
+
+  async createMayaShipperSplitDeposit(
+    payload: CreateSplitDepositPayload,
+  ): Promise<CreateSplitDepositResponse> {
+    const response = await this.fetchWithAuth("/v2/payments/maya/shipper/split-deposit", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    return this.normalizeSplitDepositResponse(response);
+  }
+
+  async requestManualCreditDeposit(payload: {
+    amount: number;
+    payment_method: string;
+    user_reference_number: string;
+    proof_url?: string;
+  }) {
+    return this.fetchWithAuth("/my-shipper/credits/manual-deposit", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getShipperSplitDepositStatus(
+    splitTransactionId: string,
+  ): Promise<ShipperSplitDepositTransactionDetails> {
+    return this.fetchWithAuth(`/my-shipper/credits/split-deposit/${splitTransactionId}`);
+  }
+
+  async getTopUpRequests(status?: string): Promise<ShipperTopUpRequest[]> {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    const qs = params.toString();
+    return this.fetchWithAuth(`/my-shipper/credits/top-up-requests${qs ? `?${qs}` : ""}`);
+  }
+
+  async uploadProofOfPayment(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${API_BASE_URL}/upload/verification-document`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Failed to upload proof of payment" }));
+      throw new Error(error.message || "Failed to upload proof of payment");
+    }
+
+    const responseBody = await response.json();
+    return responseBody.data ?? responseBody;
   }
 
   async getCreditTransactions(filters?: {
