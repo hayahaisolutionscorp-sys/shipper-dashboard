@@ -34,7 +34,7 @@ export default function DashboardCharts({ bookingStats }: DashboardChartsProps) 
           </div>
         </header>
 
-        <div className="relative h-64 md:h-72 w-full flex items-end justify-between gap-2 md:gap-4 pt-4 px-2">
+        <div className="relative h-64 md:h-72 w-full flex items-stretch justify-between gap-2 md:gap-4 pt-4 px-2">
           {/* Background Grid Lines */}
           <div className="absolute inset-x-0 inset-y-8 flex flex-col justify-between pointer-events-none z-0">
             {[...Array(5)].map((_, i) => (
@@ -46,7 +46,7 @@ export default function DashboardCharts({ bookingStats }: DashboardChartsProps) 
               const height = Math.max((m.count / maxMonthly) * 100, 4);
               return (
                 <div key={m.month} className="flex-1 flex flex-col items-center gap-2 group cursor-default">
-                  <div className="relative w-full flex items-end justify-center h-full z-10">
+                  <div className="relative w-full flex items-end justify-center flex-1 z-10">
                     <motion.div
                       className="w-full max-w-[40px] rounded-t-md bg-gradient-to-t from-blue-600/40 to-blue-500/90 dark:from-blue-500/40 dark:to-blue-400/90 group-hover:opacity-80 transition-opacity shadow-sm border-t border-blue-400/50"
                       initial={{ height: 0 }}

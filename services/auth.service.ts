@@ -1,6 +1,11 @@
 import type { TripResult } from "@/types/booking";
+import type { ReceiptData } from "@/lib/receipt/types";
+import {
+  resolveShipperApiBaseUrl,
+  warnIfApiBaseIsDashboardOrigin,
+} from "@/lib/shipper-api-base";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_V2_API_URL || "http://localhost:3002";
+const API_BASE_URL = resolveShipperApiBaseUrl();
 
 export interface LoginCredentials {
   email: string;
@@ -83,6 +88,34 @@ export interface Personnel {
 export interface VehicleType {
   id: number;
   name: string;
+}
+
+export interface TripCabin {
+  id: number;
+  name: string;
+}
+
+export interface CreateBookingVehiclePayload {
+  vehicle_id: string;
+  plate_number: string;
+  vehicle_type: string;
+  vehicle_type_id?: number | null;
+  personnel_cabin_id?: number | null;
+  personnel_cabin_name?: string | null;
+  driver?: {
+    id: string;
+    name: string;
+    phone: string | null;
+    sex?: string | null;
+    date_of_birth?: string | null;
+  } | null;
+  helpers: {
+    id: string;
+    name: string;
+    phone: string | null;
+    sex?: string | null;
+    date_of_birth?: string | null;
+  }[];
 }
 
 export interface ShipperRate {
@@ -211,6 +244,15 @@ function mapConnectingTripToTripResult(raw: any): TripResult {
   const toTimeStr = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const toDateStr = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const remainingVehicles = (raw?.segments?.[0]?.remaining_capacities?.vehicles ??
+    raw?.remaining_capacities?.vehicles ??
+    {}) as Record<string, unknown>;
+  const availableVehicleCapacity = Object.values(remainingVehicles).reduce((sum: number, v) => {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? sum + n : sum;
+  }, 0);
+
   return {
     id: raw.id,
     trip_segment_id: firstSegment?.id ?? raw.id,
@@ -221,8 +263,8 @@ function mapConnectingTripToTripResult(raw: any): TripResult {
     arrival_time: toTimeStr(arrival),
     src_port_name: raw.origin_name ?? "",
     dest_port_name: raw.destination_name ?? "",
-    available_vehicle_capacity: 0,
-    status: "available",
+    available_vehicle_capacity: availableVehicleCapacity,
+    status: raw.status ?? firstSegment?.status ?? "available",
     shipping_line_name: raw.tenant_name,
     tenant_id: raw.tenant_id ?? 0,
     tenant_name: raw.tenant_name ?? "",
@@ -382,6 +424,8 @@ class AuthService {
   private async fetchWithAuth(url: string, options: RequestInit = {}, isRetry = false): Promise<any> {
     if (!this.isAuthenticated()) throw new Error("Not authenticated");
 
+    warnIfApiBaseIsDashboardOrigin(API_BASE_URL);
+
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
       credentials: "include",
@@ -412,13 +456,36 @@ class AuthService {
       throw new Error("Session expired");
     }
 
+    const text = await response.text();
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || "Request failed");
+      let message = response.statusText || "Request failed";
+      try {
+        const errJson = JSON.parse(text) as { message?: string | string[] };
+        if (typeof errJson?.message === "string") message = errJson.message;
+        else if (Array.isArray(errJson?.message)) message = errJson.message.join(", ");
+      } catch {
+        if (
+          text.includes("Cannot GET") ||
+          text.includes("Cannot POST") ||
+          text.includes("Cannot PUT") ||
+          text.includes("Cannot DELETE")
+        ) {
+          message =
+            "This request hit a server that has no shipper API routes (HTML/Express 404). " +
+            "Set NEXT_PUBLIC_V2_API_URL to your ayahay-api-v2 root URL, e.g. http://localhost:3002 — " +
+            "not the shipper-dashboard URL (port 3003).";
+        }
+      }
+      throw new Error(message);
     }
 
-    const responseBody = await response.json();
-    // Backend wraps all responses in { status, message, data }
+    let responseBody: { data?: unknown; status?: string };
+    try {
+      responseBody = JSON.parse(text) as { data?: unknown; status?: string };
+    } catch {
+      throw new Error("API returned non-JSON success body");
+    }
     return responseBody.data ?? responseBody;
   }
 
@@ -464,7 +531,13 @@ class AuthService {
     return this.fetchWithAuth("/my-shipper/personnel");
   }
 
-  async createPersonnel(data: { name: string; phone?: string; role: "driver" | "helper" }): Promise<Personnel> {
+  async createPersonnel(data: {
+    name: string;
+    phone?: string;
+    role: "driver" | "helper";
+    sex?: "male" | "female" | null;
+    date_of_birth?: string | null;
+  }): Promise<Personnel> {
     return this.fetchWithAuth("/my-shipper/personnel", {
       method: "POST",
       body: JSON.stringify(data),
@@ -558,8 +631,27 @@ class AuthService {
     }
   }
 
+  /**
+   * Receipt payload for thermal printing. The v2 API resolves the booking’s tenant
+   * and proxies to that tenant’s client-api, so templates and settings are always
+   * scoped to the shipping line that owns the booking.
+   */
+  async getReceiptData(bookingId: string): Promise<ReceiptData> {
+    return this.fetchWithAuth(
+      `/my-shipper/bookings/${encodeURIComponent(bookingId)}/receipt-data`,
+    );
+  }
+
   async getBookingStats(): Promise<BookingStats> {
     return this.fetchWithAuth("/my-shipper/booking-stats");
+  }
+
+  async getTripCabins(tripId: string, tenantId: number): Promise<TripCabin[]> {
+    const params = new URLSearchParams({ tenant_id: String(tenantId) });
+    const data = await this.fetchWithAuth(
+      `/my-shipper/trips/${encodeURIComponent(tripId)}/cabins?${params.toString()}`,
+    );
+    return Array.isArray(data) ? data : (data?.data ?? []);
   }
 
   // ============ Password Reset ============
@@ -635,7 +727,10 @@ class AuthService {
     });
     const raw: any[] = await this.fetchWithAuth(`/my-shipper/trips?${qs}`);
     const results = Array.isArray(raw) ? raw : [];
-    const mapped = results.map(mapConnectingTripToTripResult);
+    const mapped = results.map((t: any) => {
+      // The v2 shipper trip search fanout returns ConnectingTripDto (direct/connecting).
+      return mapConnectingTripToTripResult(t);
+    });
     // Deduplicate by id — the multi-tenant fan-out can return the same trip from
     // multiple tenants, which causes React duplicate-key warnings.
     const seen = new Set<string>();
@@ -828,26 +923,7 @@ class AuthService {
     tenant_id: number;
     trip_id: string;
     route_code: string;
-    vehicles: {
-      vehicle_id: string;
-      plate_number: string;
-      vehicle_type: string;
-      vehicle_type_id?: number | null;
-      driver?: {
-        id: string;
-        name: string;
-        phone: string | null;
-        sex?: string | null;
-        date_of_birth?: string | null;
-      } | null;
-      helpers: {
-        id: string;
-        name: string;
-        phone: string | null;
-        sex?: string | null;
-        date_of_birth?: string | null;
-      }[];
-    }[];
+    vehicles: CreateBookingVehiclePayload[];
     payment_method: string;
     remarks?: string;
   }): Promise<{ id: string; reference_no: string; booking_status: string }> {
@@ -855,12 +931,11 @@ class AuthService {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    // Response: { total_vehicles, successful, bookings: [{data:{data:"<uuid>"}}], booking_status }
-    // reference_no is not returned by this endpoint — only available via GET /bookings
-    const id = result?.bookings?.[0]?.data?.data ?? "";
+    // Response: { total_vehicles, successful, bookings: [...], id, reference_no, booking_status }
+    const id = result?.id ?? result?.bookings?.[0]?.data?.data ?? "";
     return {
       id,
-      reference_no: "",
+      reference_no: result?.reference_no ?? "",
       booking_status: result?.booking_status ?? "",
     };
   }
@@ -869,26 +944,7 @@ class AuthService {
     tenant_id: number;
     trip_id: string;
     route_code: string;
-    vehicles: {
-      vehicle_id: string;
-      plate_number: string;
-      vehicle_type: string;
-      vehicle_type_id?: number | null;
-      driver?: {
-        id: string;
-        name: string;
-        phone: string | null;
-        sex?: string | null;
-        date_of_birth?: string | null;
-      } | null;
-      helpers: {
-        id: string;
-        name: string;
-        phone: string | null;
-        sex?: string | null;
-        date_of_birth?: string | null;
-      }[];
-    }[];
+    vehicles: CreateBookingVehiclePayload[];
     payment_method: string;
     remarks?: string;
   }): Promise<{ id: string; reference_no: string; booking_status: string }> {
@@ -914,6 +970,8 @@ export interface Booking {
   shipper_rate_currency: string | null;
   has_cargo: boolean;
   has_passengers: boolean;
+  bir_invoice_no: string | null;
+  vessel_name: string | null;
   scheduled_departure: string | null;
   scheduled_arrival: string | null;
   route_code: string | null;

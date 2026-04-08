@@ -12,7 +12,7 @@ import {
   IconClock,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { Vehicle, Personnel, AssignedRoute, VehicleType } from "@/services/auth.service";
+import type { Vehicle, Personnel, AssignedRoute, VehicleType, TripCabin } from "@/services/auth.service";
 import type { TripResult, BookingVehicleEntry } from "@/types/booking";
 import { VehicleCard } from "./vehicle-card";
 
@@ -22,6 +22,8 @@ interface VehicleFormProps {
   vehicles: Vehicle[];
   personnel: Personnel[];
   vehicleTypes: VehicleType[];
+  cabins: TripCabin[];
+  isLoadingCabins: boolean;
   entries: BookingVehicleEntry[];
   onEntriesChange: (entries: BookingVehicleEntry[]) => void;
   onUpdateVehicleType: (index: number, typeName: string, typeId: number) => void;
@@ -34,6 +36,8 @@ export function VehicleForm({
   vehicles,
   personnel,
   vehicleTypes,
+  cabins,
+  isLoadingCabins,
   entries,
   onEntriesChange,
   onUpdateVehicleType,
@@ -126,6 +130,19 @@ export function VehicleForm({
       onEntriesChange(updated);
     },
     [entries, onEntriesChange]
+  );
+
+  const handleUpdatePersonnelCabin = useCallback(
+    (index: number, cabin: TripCabin | null) => {
+      const updated = [...entries];
+      updated[index] = {
+        ...updated[index],
+        personnel_cabin_id: cabin?.id ?? null,
+        personnel_cabin_name: cabin?.name ?? null,
+      };
+      onEntriesChange(updated);
+    },
+    [entries, onEntriesChange],
   );
 
   const handleAddHelper = useCallback(
@@ -317,11 +334,14 @@ export function VehicleForm({
                 index={index}
                 personnel={personnel}
                 vehicleTypes={vehicleTypes}
+                cabins={cabins}
+                isLoadingCabins={isLoadingCabins}
                 onUpdateDriver={(driver) => handleUpdateDriver(index, driver)}
                 onAddHelper={() => handleAddHelper(index)}
                 onUpdateHelper={(hIdx, person) => handleUpdateHelper(index, hIdx, person)}
                 onRemoveHelper={(hIdx) => handleRemoveHelper(index, hIdx)}
                 onUpdateVehicleType={(typeName, typeId) => onUpdateVehicleType(index, typeName, typeId)}
+                onUpdatePersonnelCabin={(cabin) => handleUpdatePersonnelCabin(index, cabin)}
                 onRemove={() => handleRemoveVehicle(index)}
               />
             ))}

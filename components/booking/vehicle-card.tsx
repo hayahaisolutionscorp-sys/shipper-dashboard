@@ -13,7 +13,7 @@ import {
   IconCheck,
   IconAlertTriangle,
 } from "@tabler/icons-react";
-import type { Vehicle, Personnel, VehicleType } from "@/services/auth.service";
+import type { Vehicle, Personnel, VehicleType, TripCabin } from "@/services/auth.service";
 import type { BookingVehicleEntry } from "@/types/booking";
 
 interface VehicleCardProps {
@@ -21,11 +21,14 @@ interface VehicleCardProps {
   index: number;
   personnel: Personnel[];
   vehicleTypes: VehicleType[];
+  cabins: TripCabin[];
+  isLoadingCabins: boolean;
   onUpdateDriver: (driver: Personnel | null) => void;
   onAddHelper: () => void;
   onUpdateHelper: (helperIndex: number, person: Personnel) => void;
   onRemoveHelper: (helperIndex: number) => void;
   onUpdateVehicleType: (typeName: string, typeId: number) => void;
+  onUpdatePersonnelCabin: (cabin: TripCabin | null) => void;
   onRemove: () => void;
 }
 
@@ -34,15 +37,22 @@ export function VehicleCard({
   index,
   personnel,
   vehicleTypes,
+  cabins,
+  isLoadingCabins,
   onUpdateDriver,
   onAddHelper,
   onUpdateHelper,
   onRemoveHelper,
   onUpdateVehicleType,
+  onUpdatePersonnelCabin,
   onRemove,
 }: VehicleCardProps) {
   const drivers = personnel.filter((p) => p.role === "driver" && p.is_active);
   const helpers = personnel.filter((p) => p.role === "helper" && p.is_active);
+  const selectedCabin =
+    entry.personnel_cabin_id != null
+      ? cabins.find((c) => c.id === entry.personnel_cabin_id) ?? null
+      : null;
 
   return (
     <motion.div
@@ -110,6 +120,21 @@ export function VehicleCard({
           onSelect={(p) => onUpdateDriver(p)}
           onClear={() => onUpdateDriver(null)}
           placeholder="Select driver..."
+        />
+      </div>
+
+      {/* Personnel Cabin / Accommodation */}
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          Accommodation
+        </label>
+        <CabinDropdown
+          options={cabins}
+          selected={selectedCabin}
+          isLoading={isLoadingCabins}
+          onSelect={onUpdatePersonnelCabin}
+          onClear={() => onUpdatePersonnelCabin(null)}
+          placeholder={isLoadingCabins ? "Loading cabins..." : "Select cabin..."}
         />
       </div>
 
@@ -310,6 +335,86 @@ function PersonnelDropdown({
                     )}
                   </div>
                   {selected?.id === person.id && (
+                    <IconCheck className="size-3.5 text-primary shrink-0" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============ Inline Cabin Dropdown ============
+
+interface CabinDropdownProps {
+  options: TripCabin[];
+  selected: TripCabin | null;
+  isLoading: boolean;
+  onSelect: (cabin: TripCabin) => void;
+  onClear: () => void;
+  placeholder: string;
+}
+
+function CabinDropdown({
+  options,
+  selected,
+  isLoading,
+  onSelect,
+  onClear,
+  placeholder,
+}: CabinDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isLoading}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-card text-sm hover:bg-muted/50 transition-colors disabled:opacity-50"
+      >
+        <span className={selected ? "text-foreground" : "text-muted-foreground"}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <IconChevronDown className="size-3.5 text-muted-foreground" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute z-50 mt-1 w-full bg-card rounded-lg border border-border shadow-lg max-h-48 overflow-y-auto">
+            {selected && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClear();
+                  setIsOpen(false);
+                }}
+                className="w-full px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Clear selection
+              </button>
+            )}
+            {options.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+                No cabins available
+              </div>
+            ) : (
+              options.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect(c);
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left hover:bg-muted transition-colors flex items-center justify-between"
+                >
+                  <span className="text-sm text-foreground">{c.name}</span>
+                  {selected?.id === c.id && (
                     <IconCheck className="size-3.5 text-primary shrink-0" />
                   )}
                 </button>

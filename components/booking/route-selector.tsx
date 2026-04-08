@@ -7,6 +7,7 @@ import {
   IconSearch,
   IconArrowRight,
   IconShip,
+  IconAlertCircle,
 } from "@tabler/icons-react";
 import type { AssignedRoute } from "@/services/auth.service";
 import { listVariants, itemVariants } from "@/components/motion/page-transition";
@@ -17,13 +18,32 @@ interface RouteSelectorProps {
   onSelect: (route: AssignedRoute) => void;
 }
 
+// Helper to check if a route has configured rates
+function hasConfiguredRates(route: AssignedRoute): boolean {
+  return (route.rates && route.rates.length > 0) || !!route.rate;
+}
+
 export function RouteSelector({ routes, isLoading, onSelect }: RouteSelectorProps) {
   const [search, setSearch] = useState("");
 
-  // Group by tenant
+  // Separate routes with and without rates
+  const { routesWithRates, routesWithoutRates } = useMemo(() => {
+    const withRates: AssignedRoute[] = [];
+    const withoutRates: AssignedRoute[] = [];
+    for (const route of routes) {
+      if (hasConfiguredRates(route)) {
+        withRates.push(route);
+      } else {
+        withoutRates.push(route);
+      }
+    }
+    return { routesWithRates: withRates, routesWithoutRates: withoutRates };
+  }, [routes]);
+
+  // Group bookable routes (with rates) by tenant, filtered by search
   const filteredRoutesByTenant = useMemo(() => {
     const term = search.toLowerCase();
-    const filtered = routes.filter((r) => {
+    const filtered = routesWithRates.filter((r) => {
       if (!search) return true;
       return (
         r.route_code.toLowerCase().includes(term) ||
@@ -38,7 +58,7 @@ export function RouteSelector({ routes, isLoading, onSelect }: RouteSelectorProp
       acc[key].push(route);
       return acc;
     }, {});
-  }, [routes, search]);
+  }, [routesWithRates, search]);
 
   if (isLoading) {
     return (
@@ -74,6 +94,24 @@ export function RouteSelector({ routes, isLoading, onSelect }: RouteSelectorProp
         <h3 className="text-lg font-medium text-foreground">No routes assigned</h3>
         <p className="text-sm text-muted-foreground mt-1">
           You don't have any assigned routes yet. Contact support for assistance.
+        </p>
+      </div>
+    );
+  }
+
+  // All routes exist but none have rates configured
+  if (routesWithRates.length === 0 && routesWithoutRates.length > 0) {
+    return (
+      <div className="bg-card rounded-xl border border-amber-200 bg-amber-50/50 p-12 text-center">
+        <div className="size-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+          <IconAlertCircle className="size-8 text-amber-600" />
+        </div>
+        <h3 className="text-lg font-medium text-foreground">No bookable routes</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          You have {routesWithoutRates.length} assigned route{routesWithoutRates.length !== 1 ? "s" : ""}, but none have rates configured yet.
+        </p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Please contact your shipping line to set up rates for your routes.
         </p>
       </div>
     );
@@ -185,6 +223,26 @@ export function RouteSelector({ routes, isLoading, onSelect }: RouteSelectorProp
               </motion.div>
             </div>
           ))}
+
+          {/* Notice about routes without rates */}
+          {routesWithoutRates.length > 0 && (
+            <div className="mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50/50">
+              <div className="flex items-start gap-3">
+                <div className="size-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                  <IconAlertCircle className="size-4 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    {routesWithoutRates.length} route{routesWithoutRates.length !== 1 ? "s" : ""} not shown
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Some assigned routes don't have rates configured yet and cannot be booked.
+                    Contact your shipping line to set up rates.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

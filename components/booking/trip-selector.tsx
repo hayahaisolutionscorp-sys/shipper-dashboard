@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   IconCalendar,
@@ -54,6 +54,11 @@ export function TripSelector({ route, onSelect, onBack }: TripSelectorProps) {
       setIsSearching(false);
     }
   }, [route, departureDate]);
+
+  // Auto-search when entering this step (route selected) using the default date selection.
+  useEffect(() => {
+    handleSearch();
+  }, [handleSearch]);
 
   const formatTime = (dateStr: string, timeStr?: string) => {
     if (timeStr) return timeStr;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { differenceInYears } from "date-fns";
 import {
   IconUsers,
   IconPlus,
@@ -34,6 +35,8 @@ export default function PersonnelPage() {
     name: "",
     phone: "",
     role: "driver" as "driver" | "helper",
+    sex: null as "male" | "female" | null,
+    date_of_birth: null as string | null,
   });
 
   const { data: personnel = [], isPending: isLoading } = useQuery({
@@ -68,7 +71,13 @@ export default function PersonnelPage() {
 
   function openAddModal() {
     setEditingPerson(null);
-    setFormData({ name: "", phone: "", role: "driver" });
+    setFormData({
+      name: "",
+      phone: "",
+      role: "driver",
+      sex: null,
+      date_of_birth: null,
+    });
     setShowModal(true);
   }
 
@@ -78,6 +87,8 @@ export default function PersonnelPage() {
       name: person.name,
       phone: person.phone || "",
       role: person.role,
+      sex: person.sex ?? null,
+      date_of_birth: person.date_of_birth ?? null,
     });
     setShowModal(true);
   }
@@ -100,6 +111,8 @@ export default function PersonnelPage() {
           name: formData.name,
           phone: formData.phone || undefined,
           role: formData.role,
+          sex: formData.sex,
+          date_of_birth: formData.date_of_birth ?? undefined,
         } as Partial<Personnel>);
         logActivity("personnel", "Personnel Updated", `${formData.name} · ${formData.role}`);
       } else {
@@ -107,6 +120,8 @@ export default function PersonnelPage() {
           name: formData.name,
           phone: formData.phone || undefined,
           role: formData.role,
+          sex: formData.sex,
+          date_of_birth: formData.date_of_birth ?? undefined,
         });
         logActivity("personnel", "Personnel Added", `${formData.name} · ${formData.role}`);
       }
@@ -292,6 +307,45 @@ export default function PersonnelPage() {
                   className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  Sex (Optional)
+                </label>
+                <select
+                  value={formData.sex ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({
+                      ...formData,
+                      sex: (v === "male" || v === "female" ? v : null) as
+                        | "male"
+                        | "female"
+                        | null,
+                    });
+                  }}
+                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+                >
+                  <option value="">Unspecified</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  Date of Birth (Optional)
+                </label>
+                <input
+                  type="date"
+                  value={formData.date_of_birth ?? ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      date_of_birth: e.target.value || null,
+                    })
+                  }
+                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+                />
+              </div>
               <div className="space-y-3">
                 <label className="text-sm font-medium text-foreground">Role Assignment</label>
                 <div className="grid grid-cols-2 gap-4">
@@ -399,6 +453,12 @@ export default function PersonnelPage() {
                           <p className="text-xs text-muted-foreground font-mono mt-0.5">{person.phone}</p>
                         ) : (
                           <p className="text-xs text-muted-foreground/50 italic mt-0.5">No contact info</p>
+                        )}
+                        {(person.sex || person.date_of_birth) && (
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            {person.sex ? person.sex : "—"}
+                            {person.date_of_birth ? ` · ${differenceInYears(new Date(), new Date(person.date_of_birth))} yrs old` : ""}
+                          </p>
                         )}
                       </div>
                     </div>

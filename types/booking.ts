@@ -37,6 +37,8 @@ export interface BookingVehicleEntry {
   vehicle: Vehicle;
   driver: Personnel | null;
   helpers: Personnel[];
+  personnel_cabin_id?: number | null;
+  personnel_cabin_name?: string | null;
   /** Vehicle type name chosen from the tenant's list — overrides vehicle.vehicle_type in the booking payload */
   vehicle_type_override?: string;
   /** Vehicle type ID corresponding to the override selection */
@@ -54,6 +56,8 @@ export interface CreateShipperBookingPayload {
     plate_number: string;
     vehicle_type: string;
     vehicle_type_id?: number | null;
+    personnel_cabin_id?: number | null;
+    personnel_cabin_name?: string | null;
     driver?: {
       id: string;
       name: string;
