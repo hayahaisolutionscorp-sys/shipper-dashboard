@@ -426,21 +426,32 @@ class AuthService {
 
     warnIfApiBaseIsDashboardOrigin(API_BASE_URL);
 
+    const isMultipart = options.body instanceof FormData;
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
+      headers: isMultipart
+        ? { ...options.headers }
+        : {
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
     });
 
     if (response.status === 401 && !isRetry) {
       // Attempt token refresh (API handles cookies automatically)
       const refreshed = await this.attemptTokenRefresh();
       if (refreshed) {
-        // Retry the original request with the new cookie
-        return this.fetchWithAuth(url, options, true);
+        // Only retry GET requests — POST/PATCH/DELETE are non-idempotent.
+        // If the server already processed the mutation before returning 401,
+        // retrying would create a duplicate (e.g. double booking, double deduction).
+        const method = (options.method ?? "GET").toUpperCase();
+        if (method === "GET") {
+          return this.fetchWithAuth(url, options, true);
+        }
+        // Token is now refreshed. Surface a clear error so callers can prompt the
+        // user to retry explicitly rather than silently duplicating the action.
+        throw new Error("Your session was refreshed. Please try again.");
       }
 
       // Refresh failed — session is truly expired
@@ -787,33 +798,11 @@ class AuthService {
   }
 
   async getEnabledPaymentProviders(): Promise<PaymentProvider[]> {
-    const response = await fetch(`${API_BASE_URL}/payments/providers/enabled`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Failed to fetch payment providers" }));
-      throw new Error(error.message || "Failed to fetch payment providers");
-    }
-
-    const responseBody = await response.json();
-    return responseBody.data ?? responseBody;
+    return this.fetchWithAuth("/payments/providers/enabled");
   }
 
   async getDepositMethods(): Promise<DepositMethodConfig[]> {
-    const response = await fetch(`${API_BASE_URL}/payments/providers/deposit-methods`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Failed to fetch deposit methods" }));
-      throw new Error(error.message || "Failed to fetch deposit methods");
-    }
-
-    const responseBody = await response.json();
-    return responseBody.data ?? responseBody;
+    return this.fetchWithAuth("/payments/providers/deposit-methods");
   }
 
   async createPaymongoShipperSplitDeposit(
@@ -866,20 +855,12 @@ class AuthService {
   async uploadProofOfPayment(file: File): Promise<{ url: string }> {
     const formData = new FormData();
     formData.append("file", file);
-
-    const response = await fetch(`${API_BASE_URL}/upload/verification-document`, {
+    // fetchWithAuth detects FormData body and omits the JSON Content-Type header,
+    // letting the browser set multipart/form-data with the correct boundary.
+    return this.fetchWithAuth("/upload/verification-document", {
       method: "POST",
-      credentials: "include",
       body: formData,
     });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Failed to upload proof of payment" }));
-      throw new Error(error.message || "Failed to upload proof of payment");
-    }
-
-    const responseBody = await response.json();
-    return responseBody.data ?? responseBody;
   }
 
   async getCreditTransactions(filters?: {
@@ -919,20 +900,28 @@ class AuthService {
 
   // ============ Booking Creation ============
 
-  async createBooking(payload: {
-    tenant_id: number;
-    trip_id: string;
-    route_code: string;
-    vehicles: CreateBookingVehiclePayload[];
-    payment_method: string;
-    remarks?: string;
-  }): Promise<{ id: string; reference_no: string; booking_status: string }> {
+  async createBooking(
+    payload: {
+      tenant_id: number;
+      trip_id: string;
+      route_code: string;
+      vehicles: CreateBookingVehiclePayload[];
+      payment_method: string;
+      remarks?: string;
+    },
+    // Caller-supplied stable key so re-submits of the same booking attempt are deduplicated.
+    // The key must be held in component state and reused across retries — not regenerated per call.
+    idempotencyKey?: string,
+  ): Promise<{ id: string; reference_no: string; booking_status: string }> {
     const result = await this.fetchWithAuth("/my-shipper/bookings", {
       method: "POST",
       body: JSON.stringify(payload),
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {},
     });
     // Response: { total_vehicles, successful, bookings: [...], id, reference_no, booking_status }
-    const id = result?.id ?? result?.bookings?.[0]?.data?.data ?? "";
+    // The server already normalizes `id` at the top level from the first successful booking.
+    // The nested fallback extracts the booking UUID from the raw client-api envelope shape.
+    const id = result?.id ?? result?.bookings?.[0]?.data?.data?.id ?? result?.bookings?.[0]?.data?.id ?? "";
     return {
       id,
       reference_no: result?.reference_no ?? "",

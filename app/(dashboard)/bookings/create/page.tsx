@@ -57,6 +57,10 @@ export default function CreateBookingPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [remarks, setRemarks] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Stable per-attempt idempotency key. Generated when the user enters the review step
+  // and reused on any re-submit of the same booking attempt (e.g. after a "session refreshed"
+  // error). Reset when the user starts a new booking so the next attempt gets a fresh key.
+  const [bookingIdempotencyKey, setBookingIdempotencyKey] = useState<string>(() => crypto.randomUUID());
   const [creditBalance, setCreditBalance] = useState<number | undefined>(undefined);
   const [tripCabins, setTripCabins] = useState<Array<{ id: number; name: string }>>([]);
   const [isLoadingCabins, setIsLoadingCabins] = useState(false);
@@ -174,12 +178,14 @@ export default function CreateBookingPage() {
     setSelectedRoute(null);
     setSelectedTrip(null);
     setVehicleEntries([]);
+    setBookingIdempotencyKey(crypto.randomUUID());
     setCurrentStep("route");
   }, []);
 
   const handleBackToTrip = useCallback(() => {
     setSelectedTrip(null);
     setVehicleEntries([]);
+    setBookingIdempotencyKey(crypto.randomUUID());
     setCurrentStep("trip");
   }, []);
 
@@ -256,7 +262,7 @@ export default function CreateBookingPage() {
         remarks: remarks || undefined,
       };
 
-      const result = await authService.createBooking(payload);
+      const result = await authService.createBooking(payload, bookingIdempotencyKey);
 
       const status = result.booking_status;
 
@@ -284,6 +290,8 @@ export default function CreateBookingPage() {
         booking_status: status || (paymentMethod === "collect" ? "Requested" : "Confirmed"),
         vehicleCount: vehicleEntries.length,
       });
+      // Booking committed — rotate key so "New Booking" starts a clean attempt
+      setBookingIdempotencyKey(crypto.randomUUID());
     } catch (error: any) {
       console.error("Failed to create booking:", error);
       toast.error("Failed to create booking", {
@@ -292,7 +300,7 @@ export default function CreateBookingPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedRoute, selectedTrip, vehicleEntries, paymentMethod, remarks]);
+  }, [selectedRoute, selectedTrip, vehicleEntries, paymentMethod, remarks, bookingIdempotencyKey]);
 
   const handleStepClick = useCallback(
     (targetStep: BookingStep) => {
