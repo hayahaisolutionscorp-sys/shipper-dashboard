@@ -154,7 +154,9 @@ export function buildVehicleFieldValues(
     vehicle.modelName ??
       [vehicle.make, vehicle.model].filter(Boolean).join(" "),
   );
-  const breakdown = booking.payment_breakdown;
+  const breakdown = (vehicle.payment_breakdown?.charges?.length ?? 0) > 0 || (vehicle.payment_breakdown?.taxes?.length ?? 0) > 0
+    ? vehicle.payment_breakdown
+    : booking.payment_breakdown;
   const nonInsuranceCharges = breakdown?.charges?.filter(
     (c) => c.charge_code !== "QUOTE_INSURANCE",
   );
@@ -189,7 +191,7 @@ export function buildVehicleFieldValues(
     blNumber: booking.reference_no.substring(0, 6).toUpperCase(),
     frrNumber: "—",
 
-    freight: formatCurrency(vehicle.baseFare ?? vehicle.price),
+    freight: formatCurrency(vehicle.payment_breakdown?.base_fare ?? vehicle.baseFare ?? vehicle.price),
     discount: "—",
     freightTotal: formatCurrency(vehicle.price),
     valuation: findChargeAmount(breakdown?.charges, "QUOTE_INSURANCE"),
@@ -215,7 +217,9 @@ export function buildLooseCargoFieldValues(
   cargo: BookingCargo,
   settings?: ShippingLineSettings | null,
 ): FieldValues {
-  const breakdown = booking.payment_breakdown;
+  const breakdown = (cargo.payment_breakdown?.charges?.length ?? 0) > 0 || (cargo.payment_breakdown?.taxes?.length ?? 0) > 0
+    ? cargo.payment_breakdown
+    : booking.payment_breakdown;
   const nonInsuranceCharges = breakdown?.charges?.filter(
     (c) => c.charge_code !== "QUOTE_INSURANCE",
   );
@@ -250,7 +254,7 @@ export function buildLooseCargoFieldValues(
     blNumber: booking.reference_no.substring(0, 6).toUpperCase(),
     frrNumber: "—",
 
-    freight: formatCurrency(cargo.baseFare ?? cargo.price),
+    freight: formatCurrency(cargo.payment_breakdown?.base_fare ?? cargo.baseFare ?? cargo.price),
     discount: "—",
     freightTotal: formatCurrency(cargo.price),
     valuation: findChargeAmount(breakdown?.charges, "QUOTE_INSURANCE"),
@@ -361,7 +365,7 @@ export function buildSummaryValues(
         discountType: orDash(p.discountType),
         accommodation: orDash(p.accommodation),
         route: route(trip),
-        fare: formatCurrency(p.price),
+        fare: formatCurrency(p.payment_breakdown?.base_fare ?? p.price),
         qrValue: getBookingQRValue(booking, {
           passengerId: getPassengerQrId(p),
         }),
@@ -377,7 +381,7 @@ export function buildSummaryValues(
       ),
       type: orDash(v.type),
       route: route(trip),
-      fare: formatCurrency(v.price),
+      fare: formatCurrency(v.payment_breakdown?.base_fare ?? v.price),
       qrValue: getBookingQRValue(booking, { cargoId: v.bookingTripCargoId }),
     })),
   );
@@ -396,22 +400,22 @@ export function buildSummaryValues(
       quantity: String(c.quantity ?? 1),
       weight: c.unitWeight ? `${Number(c.unitWeight).toFixed(1)} kg` : "—",
       route: route(trip),
-      fare: formatCurrency(c.price),
+      fare: formatCurrency(c.payment_breakdown?.base_fare ?? c.price),
       qrValue: getBookingQRValue(booking, { cargoId: c.bookingTripCargoId }),
     })),
   );
 
   const subtotalPassengers = allTrips
     .flatMap((t) => t.passengers ?? [])
-    .reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+    .reduce((sum, p) => sum + Number(p.payment_breakdown?.base_fare ?? p.price ?? 0), 0);
 
   const subtotalVehicles = allTrips
     .flatMap((t) => t.vehicles ?? [])
-    .reduce((sum, v) => sum + Number(v.price ?? 0), 0);
+    .reduce((sum, v) => sum + Number(v.payment_breakdown?.base_fare ?? v.price ?? 0), 0);
 
   const subtotalCargo = allTrips
     .flatMap((t) => looseRows(t))
-    .reduce((sum, c) => sum + Number(c.price ?? 0), 0);
+    .reduce((sum, c) => sum + Number(c.payment_breakdown?.base_fare ?? c.price ?? 0), 0);
 
   const breakdown = booking.payment_breakdown;
 

@@ -122,6 +122,15 @@ export interface PaymentBreakdown {
   taxes: PaymentBreakdownItem[];
 }
 
+export interface ItemPaymentBreakdown {
+  base_fare: number;
+  charges_total: number;
+  taxes_total: number;
+  charges: PaymentBreakdownItem[];
+  taxes: PaymentBreakdownItem[];
+  total: number;
+}
+
 export interface BookingView {
   id: string;
   reference_no: string;
@@ -180,6 +189,7 @@ export interface BookingPassenger {
   removedReasonType: string | null;
   price?: number;
   baseFare?: number;
+  payment_breakdown?: ItemPaymentBreakdown | null;
 }
 
 export interface BookingVehicle {
@@ -200,6 +210,7 @@ export interface BookingVehicle {
   removedReasonType: string | null;
   price?: number;
   baseFare?: number;
+  payment_breakdown?: ItemPaymentBreakdown | null;
 }
 
 export interface BookingCargo {
@@ -217,6 +228,7 @@ export interface BookingCargo {
   price?: number;
   baseFare?: number;
   weight?: number;
+  payment_breakdown?: ItemPaymentBreakdown | null;
 }
 
 export interface ShippingLineSettings {
