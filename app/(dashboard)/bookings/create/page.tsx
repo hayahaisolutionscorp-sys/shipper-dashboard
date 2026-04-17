@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { stepVariants } from "@/components/motion/page-transition";
+import { useGsapStepTransition, useGsapCardEntrance, useGsapStagger } from "@/lib/gsap-animations";
 import { toast } from "sonner";
 import {
   IconArrowLeft,
@@ -73,6 +72,7 @@ export default function CreateBookingPage() {
     vehicleCount: number;
   } | null>(null);
   const [showThermalReceipt, setShowThermalReceipt] = useState(false);
+  const [stepDirection, setStepDirection] = useState<"forward" | "back">("forward");
 
   // Track whether the user has started the booking flow (for nav guard)
   const hasStartedBooking = currentStep !== "route" || vehicleEntries.length > 0;
@@ -111,6 +111,7 @@ export default function CreateBookingPage() {
           );
           if (match) {
             setSelectedRoute(match);
+            setStepDirection("forward");
             setCurrentStep("trip");
           }
         }
@@ -129,6 +130,7 @@ export default function CreateBookingPage() {
 
   // Step handlers
   const handleRouteSelect = useCallback((route: AssignedRoute) => {
+    setStepDirection("forward");
     setSelectedRoute(route);
     setSelectedTrip(null);
     setVehicleEntries([]);
@@ -136,6 +138,7 @@ export default function CreateBookingPage() {
   }, []);
 
   const handleTripSelect = useCallback((trip: TripResult) => {
+    setStepDirection("forward");
     setSelectedTrip(trip);
     setVehicleEntries([]);
     setTripCabins([]);
@@ -171,10 +174,12 @@ export default function CreateBookingPage() {
       toast.error("Please add at least one vehicle");
       return;
     }
+    setStepDirection("forward");
     setCurrentStep("review");
   }, [vehicleEntries]);
 
   const handleBackToRoute = useCallback(() => {
+    setStepDirection("back");
     setSelectedRoute(null);
     setSelectedTrip(null);
     setVehicleEntries([]);
@@ -183,6 +188,7 @@ export default function CreateBookingPage() {
   }, []);
 
   const handleBackToTrip = useCallback(() => {
+    setStepDirection("back");
     setSelectedTrip(null);
     setVehicleEntries([]);
     setBookingIdempotencyKey(crypto.randomUUID());
@@ -190,6 +196,7 @@ export default function CreateBookingPage() {
   }, []);
 
   const handleBackToVehicles = useCallback(() => {
+    setStepDirection("back");
     setCurrentStep("vehicles");
   }, []);
 
@@ -385,13 +392,18 @@ export default function CreateBookingPage() {
     }));
     const receiptTotal = receiptVehicles.reduce((sum, v) => sum + v.rate, 0);
     const hasRates = receiptTotal > 0;
+    const cardRef = useGsapCardEntrance<HTMLDivElement>([]);
+    const successBodyRef = useGsapStagger<HTMLDivElement>([bookingResult.id, bookingResult.reference_no], {
+      y: 5,
+      stagger: 0.022,
+      duration: 0.22,
+      ease: "power2.out",
+    });
 
     return (
       <div className="p-4 md:p-8 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        <div
+          ref={cardRef}
           className="bg-card rounded-2xl border border-border overflow-hidden shadow-lg"
         >
           {/* Primary header — mirrors TMS BookingLayout card header */}
@@ -453,7 +465,7 @@ export default function CreateBookingPage() {
           </div>
 
           {/* Card content */}
-          <div className="px-6 pb-6 pt-5 space-y-5">
+          <div ref={successBodyRef} className="px-6 pb-6 pt-5 space-y-5">
 
             {/* Booking meta */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -573,6 +585,7 @@ export default function CreateBookingPage() {
               <button
                 type="button"
                 onClick={() => {
+                    setStepDirection("forward");
                   setBookingResult(null);
                   setShowThermalReceipt(false);
                   setSelectedRoute(null);
@@ -607,7 +620,7 @@ export default function CreateBookingPage() {
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {showThermalReceipt && bookingResult?.id && (
           <ReceiptPrintView
@@ -618,6 +631,8 @@ export default function CreateBookingPage() {
       </div>
     );
   }
+
+  const stepRef = useGsapStepTransition<HTMLDivElement>(currentStep, stepDirection);
 
   return (
     <div className="p-6 md:p-8 max-w-3xl mx-auto">
@@ -643,48 +658,30 @@ export default function CreateBookingPage() {
         <StepIndicator currentStep={currentStep} onStepClick={handleStepClick} />
       </div>
 
-      {/* Step Content - initial={false} avoids double animation on first load */}
-      <AnimatePresence mode="wait" initial={false}>
+      {/* Step Content */}
+      <div ref={stepRef}>
         {currentStep === "route" && (
-          <motion.div
-            key="route"
-            variants={stepVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
+          <div>
             <RouteSelector
               routes={routes}
               isLoading={isLoadingData}
               onSelect={handleRouteSelect}
             />
-          </motion.div>
+          </div>
         )}
 
         {currentStep === "trip" && selectedRoute && (
-          <motion.div
-            key="trip"
-            variants={stepVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
+          <div>
             <TripSelector
               route={selectedRoute}
               onSelect={handleTripSelect}
               onBack={handleBackToRoute}
             />
-          </motion.div>
+          </div>
         )}
 
         {currentStep === "vehicles" && selectedRoute && selectedTrip && (
-          <motion.div
-            key="vehicles"
-            variants={stepVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
+          <div>
             <VehicleForm
               route={selectedRoute}
               trip={selectedTrip}
@@ -711,17 +708,11 @@ export default function CreateBookingPage() {
                 </button>
               </div>
             )}
-          </motion.div>
+          </div>
         )}
 
         {currentStep === "review" && selectedRoute && selectedTrip && (
-          <motion.div
-            key="review"
-            variants={stepVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
+          <div>
             <BookingReview
               route={selectedRoute}
               trip={selectedTrip}
@@ -735,9 +726,9 @@ export default function CreateBookingPage() {
               isSubmitting={isSubmitting}
               creditBalance={creditBalance}
             />
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

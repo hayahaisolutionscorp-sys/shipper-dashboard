@@ -1,109 +1,50 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import type { Variants, Transition } from "framer-motion";
+import gsap from "gsap";
+import { GSAP } from "@/lib/gsap-animations";
 
-/** Shared animation config for consistency across the app */
-export const motionConfig = {
-  /** Page transitions: subtle, quick */
-  page: {
-    duration: 0.2,
-    ease: [0.25, 0.1, 0.25, 1] as const, // ease-out-ish
-  },
-  /** Content fade-in: gentle entrance */
-  fadeIn: {
-    duration: 0.25,
-    ease: "easeOut",
-  },
-  /** Stagger for lists */
-  stagger: {
-    delayChildren: 0.03,
-    staggerChildren: 0.04,
-  },
-  /** Spring for interactive elements */
-  spring: {
-    type: "spring" as const,
-    stiffness: 400,
-    damping: 28,
-  },
-  /** Tighter spring for snappier feel */
-  springSnap: {
-    type: "spring" as const,
-    stiffness: 500,
-    damping: 30,
-  },
-} as const;
-
-const pageTransition: Transition = {
-  duration: motionConfig.page.duration,
-  ease: motionConfig.page.ease,
-};
-
-interface PageTransitionProps {
-  children: React.ReactNode;
+function usePrefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function PageTransition({ children }: PageTransitionProps) {
+// ─── PageTransition ──────────────────────────────────────────────
+// Wraps page content with a GSAP fade-in on mount.
+// Used in the dashboard layout to animate page transitions.
+export function PageTransition({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
-  return (
-    <AnimatePresence mode="popLayout">
-      <motion.div
-        key={pathname}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        transition={pageTransition}
-        style={{ minHeight: "100%" }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  );
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (prefersReducedMotion) {
+      gsap.set(el, { opacity: 1, y: 0, clearProps: "transform" });
+      return;
+    }
+
+    gsap.set(el, { opacity: 0, y: 6 });
+
+    gsap.fromTo(
+      el,
+      { opacity: 0, y: 6 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: GSAP.page.duration,
+        ease: GSAP.page.ease,
+        clearProps: "transform",
+      },
+    );
+
+    return () => {
+      gsap.killTweensOf(el);
+    };
+  }, [pathname, prefersReducedMotion]);
+
+  return <div ref={ref}>{children}</div>;
 }
-
-export const listVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      delayChildren: motionConfig.stagger.delayChildren,
-      staggerChildren: motionConfig.stagger.staggerChildren,
-    },
-  },
-};
-
-export const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: motionConfig.spring,
-  },
-};
-
-/** Fade + slide up for sections/cards */
-export const sectionVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: motionConfig.fadeIn.duration, ease: motionConfig.fadeIn.ease },
-  },
-};
-
-/** Step transition for wizards */
-export const stepVariants: Variants = {
-  initial: { opacity: 0, x: 12 },
-  animate: {
-    opacity: 1,
-    x: 0,
-    transition: motionConfig.spring,
-  },
-  exit: {
-    opacity: 0,
-    x: -12,
-    transition: { duration: 0.15, ease: "easeIn" },
-  },
-};

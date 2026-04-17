@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -16,7 +16,7 @@ import {
   IconTool,
 } from "@tabler/icons-react";
 import { authService, type Vehicle, type Personnel, type VehicleType } from "@/services/auth.service";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
+import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelSelector } from "@/components/ui/personnel-selector";
 import { VehiclesTableSkeleton } from "@/components/ui/skeletons";
@@ -224,6 +224,9 @@ export default function VehiclesPage() {
   const drivers = personnel.filter((p) => p.role === "driver" && p.is_active);
   const helpers = personnel.filter((p) => p.role === "helper" && p.is_active);
 
+  const { mounted: isModalMounted, overlayRef: modalOverlayRef, panelRef: modalPanelRef } = useGsapPresence(showModal);
+  const listRef = useGsapStagger<HTMLDivElement>([searchQuery, filteredVehicles]);
+
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
       {/* Header */}
@@ -281,18 +284,15 @@ export default function VehiclesPage() {
       />
 
       {/* Add/Edit Modal */}
-      {showModal && (
+      {isModalMounted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
+            ref={modalOverlayRef}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+          <div
+            ref={modalPanelRef}
             className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
           >
             <button
@@ -357,7 +357,7 @@ export default function VehiclesPage() {
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
 
@@ -406,17 +406,13 @@ export default function VehiclesPage() {
               </div>
 
               {/* List Body */}
-              <motion.div
-                variants={listVariants}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.1 }}
+              <div
+                ref={listRef}
                 className="flex flex-col gap-3"
               >
                 {filteredVehicles.map((vehicle) => (
-                  <motion.div
+                  <div
                     key={vehicle.id}
-                    variants={itemVariants}
                     className="bg-card rounded-2xl border border-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08)] hover:border-border transition-all duration-300 grid grid-cols-[1.5fr_1.5fr_2fr_2fr_120px_100px] gap-4 px-6 py-4 items-center group relative overflow-hidden"
                   >
                     <div className="flex items-center gap-3 relative z-10">
@@ -474,9 +470,9 @@ export default function VehiclesPage() {
                         <IconTrash className="size-4" />
                       </button>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             </div>
           </div>
         )}

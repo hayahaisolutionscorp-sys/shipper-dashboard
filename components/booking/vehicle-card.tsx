@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { motionConfig } from "@/components/motion/page-transition";
+import { useGsapCardEntrance } from "@/lib/gsap-animations";
 import {
   IconCar,
   IconTag,
@@ -53,15 +52,13 @@ export function VehicleCard({
     entry.personnel_cabin_id != null
       ? cabins.find((c) => c.id === entry.personnel_cabin_id) ?? null
       : null;
+  const cardRef = useGsapCardEntrance<HTMLDivElement>([entry.vehicle.id], { y: 8, delay: index * 0.02 });
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -12 }}
-      transition={motionConfig.spring}
-      className="bg-card rounded-xl border border-border p-4 space-y-3"
+    <div
+      ref={cardRef}
+      data-vehicle-card-id={entry.vehicle.id}
+      className="bg-card rounded-xl border border-border p-4 space-y-3 will-change-transform"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -174,7 +171,7 @@ export function VehicleCard({
           </div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
 

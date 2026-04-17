@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   IconSearch,
   IconFilter,
@@ -17,9 +16,9 @@ import {
   authService,
   type Booking,
 } from "@/services/auth.service";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
 import { BookingDrawer } from "@/components/booking/booking-drawer";
 import { BookingsStatsSkeleton, BookingsTableSkeleton } from "@/components/ui/skeletons";
+import { useGsapDropdownPresence } from "@/lib/gsap-animations";
 
 const STATUSES = ["all", "confirmed", "pending", "cancelled"];
 const DATE_RANGES = ["all", "today", "week", "month"] as const;
@@ -66,6 +65,8 @@ export default function BookingsPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showFilterPanel]);
+
+  const { mounted: isFilterMounted, dropdownRef: filterDropdownRef } = useGsapDropdownPresence(showFilterPanel);
 
   const { data, isPending: isLoading } = useQuery({
     queryKey: ["bookings", statusFilter, page],
@@ -171,7 +172,7 @@ export default function BookingsPage() {
             <div className="text-2xl font-semibold tabular-nums text-foreground">{data.stats.pending}</div>
           </div>
           <div className="flex flex-col p-6 rounded-xl border border-border bg-card shadow-sm bg-gradient-to-t from-violet-500/5 to-transparent">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Revenue</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Spend</h3>
             <div className="text-2xl font-semibold tabular-nums text-foreground">₱{data.stats.total_revenue.toLocaleString()}</div>
           </div>
         </div>
@@ -207,63 +208,58 @@ export default function BookingsPage() {
               )}
             </button>
 
-            <AnimatePresence>
-              {showFilterPanel && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                  transition={{ duration: 0.14, ease: "easeOut" }}
-                  className="absolute left-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-xl z-20 overflow-hidden"
-                >
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                    <p className="text-sm font-semibold text-foreground">Filters</p>
-                    {activeFilterCount > 0 && (
-                      <button
-                        onClick={() => { setSelectedTenants([]); setPage(0); }}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-
-                  {data?.tenants && data.tenants.length > 0 ? (
-                    <div className="p-3">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                        Shipping Line
-                      </p>
-                      <div className="space-y-0.5">
-                        {data.tenants.map((tenant) => (
-                          <label
-                            key={tenant.tenant_id}
-                            className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedTenants.includes(tenant.tenant_id)}
-                              onChange={(e) => {
-                                setSelectedTenants((prev) =>
-                                  e.target.checked
-                                    ? [...prev, tenant.tenant_id]
-                                    : prev.filter((id) => id !== tenant.tenant_id),
-                                );
-                                setPage(0);
-                              }}
-                              className="size-3.5 rounded accent-primary"
-                            />
-                            <span className="text-sm text-foreground flex-1 truncate">{tenant.tenant_name}</span>
-                            <span className="text-xs text-muted-foreground tabular-nums">{tenant.booking_count}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-6">No shipping lines found</p>
+            {isFilterMounted && (
+              <div
+                ref={filterDropdownRef}
+                className="absolute left-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-xl z-20 overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                  <p className="text-sm font-semibold text-foreground">Filters</p>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={() => { setSelectedTenants([]); setPage(0); }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Clear all
+                    </button>
                   )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+
+                {data?.tenants && data.tenants.length > 0 ? (
+                  <div className="p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                      Shipping Line
+                    </p>
+                    <div className="space-y-0.5">
+                      {data.tenants.map((tenant) => (
+                        <label
+                          key={tenant.tenant_id}
+                          className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTenants.includes(tenant.tenant_id)}
+                            onChange={(e) => {
+                              setSelectedTenants((prev) =>
+                                e.target.checked
+                                  ? [...prev, tenant.tenant_id]
+                                  : prev.filter((id) => id !== tenant.tenant_id),
+                              );
+                              setPage(0);
+                            }}
+                            className="size-3.5 rounded accent-primary"
+                          />
+                          <span className="text-sm text-foreground flex-1 truncate">{tenant.tenant_name}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{tenant.booking_count}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6">No shipping lines found</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

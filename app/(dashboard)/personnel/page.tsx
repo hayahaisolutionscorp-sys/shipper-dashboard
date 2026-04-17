@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { differenceInYears } from "date-fns";
@@ -15,7 +15,7 @@ import {
   IconSearch
 } from "@tabler/icons-react";
 import { authService, type Personnel, type Vehicle } from "@/services/auth.service";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
+import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
 import { PersonnelTableSkeleton } from "@/components/ui/skeletons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { logActivity } from "@/lib/activity-logger";
@@ -38,6 +38,8 @@ export default function PersonnelPage() {
     sex: null as "male" | "female" | null,
     date_of_birth: null as string | null,
   });
+
+  const { mounted: isModalMounted, overlayRef: modalOverlayRef, panelRef: modalPanelRef } = useGsapPresence(showModal);
 
   const { data: personnel = [], isPending: isLoading } = useQuery({
     queryKey: ["my-personnel"],
@@ -192,6 +194,8 @@ export default function PersonnelPage() {
     return matchesRole && matchesSearch;
   });
 
+  const listRef = useGsapStagger<HTMLDivElement>([roleFilter, searchQuery, filteredPersonnel]);
+
   const tabs: { value: RoleFilter; label: string }[] = [
     { value: "all", label: `All (${personnel.length})` },
     { value: "driver", label: `Drivers (${personnel.filter((p) => p.role === "driver").length})` },
@@ -258,18 +262,15 @@ export default function PersonnelPage() {
       />
 
       {/* Add/Edit Modal */}
-      {showModal && (
+      {isModalMounted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
+            ref={modalOverlayRef}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+          <div
+            ref={modalPanelRef}
             className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
           >
             <button
@@ -389,7 +390,7 @@ export default function PersonnelPage() {
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
 
@@ -429,18 +430,13 @@ export default function PersonnelPage() {
                 <div className="text-right">Actions</div>
               </div>
               {/* List Body */}
-              <motion.div
-                key={roleFilter}
-                variants={listVariants}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.1 }}
+              <div
+                ref={listRef}
                 className="flex flex-col gap-3"
               >
                 {filteredPersonnel.map((person) => (
-                  <motion.div
+                  <div
                     key={person.id}
-                    variants={itemVariants}
                     className="bg-card rounded-2xl border border-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08)] hover:border-border transition-all duration-300 grid grid-cols-[1.5fr_1fr_1fr_1fr_100px] gap-4 px-6 py-4 items-center group relative overflow-hidden"
                   >
                     <div className="flex items-center gap-3 relative z-10">
@@ -533,9 +529,9 @@ export default function PersonnelPage() {
                         )}
                       </button>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             </div>
           </div>
         )}

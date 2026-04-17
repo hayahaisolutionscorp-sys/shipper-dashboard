@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { IconRoute, IconArrowRight, IconShip, IconSearch, IconCalendarPlus } from "@tabler/icons-react";
 import { authService, type AssignedRoute } from "@/services/auth.service";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
+import { useGsapStagger } from "@/lib/gsap-animations";
 import { RouteCardSkeleton } from "@/components/ui/skeletons";
 
 export default function RoutesPage() {
   const router = useRouter();
   const [selectedTenant, setSelectedTenant] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const listRef = useGsapStagger<HTMLDivElement>([searchQuery, selectedTenant]);
 
   const { data: routes = [], isPending: isLoading } = useQuery({
     queryKey: ["assigned-routes"],
@@ -155,9 +157,9 @@ export default function RoutesPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div ref={listRef} className="space-y-8">
           {Object.entries(routesByTenant).map(([tenantName, tenantRoutes]) => (
-            <div key={tenantName}>
+            <div key={tenantName} className="gsap-stagger-item">
               {/* Tenant Section Header */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -172,17 +174,12 @@ export default function RoutesPage() {
               </div>
 
               {/* Route Cards */}
-              <motion.div
+              <div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                variants={listVariants}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "50px" }}
               >
                 {tenantRoutes.map((route) => (
-                  <motion.div
+                  <div
                     key={`${route.tenant_id}-${route.route_code}`}
-                    variants={itemVariants}
                     className="bg-card rounded-2xl border border-border p-6 hover:border-foreground/20 shadow-sm hover:shadow-md transition-all duration-300 group"
                   >
                     <div className="flex items-start justify-between mb-4">
@@ -224,9 +221,9 @@ export default function RoutesPage() {
                       <IconCalendarPlus className="size-3.5" />
                       Book this route
                     </button>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             </div>
           ))}
         </div>

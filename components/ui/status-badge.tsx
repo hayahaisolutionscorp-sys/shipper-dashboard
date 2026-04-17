@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { IconLoader2 } from "@tabler/icons-react";
 import { FC } from "react";
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import gsap from "gsap";
+
 import {
   IconSearch,
   IconCar,
@@ -118,7 +119,27 @@ export function VehicleForm({
 
   const handleRemoveVehicle = useCallback(
     (index: number) => {
-      onEntriesChange(entries.filter((_, i) => i !== index));
+      const targetEntry = entries[index];
+      if (!targetEntry) return;
+
+      const selector = `[data-vehicle-card-id="${targetEntry.vehicle.id}"]`;
+      const target = document.querySelector(selector);
+
+      if (!(target instanceof HTMLElement)) {
+        onEntriesChange(entries.filter((_, i) => i !== index));
+        return;
+      }
+
+      gsap.to(target, {
+        opacity: 0,
+        y: -6,
+        scale: 0.98,
+        duration: 0.18,
+        ease: "power2.in",
+        onComplete: () => {
+          onEntriesChange(entries.filter((_, i) => i !== index));
+        },
+      });
     },
     [entries, onEntriesChange]
   );
@@ -326,7 +347,7 @@ export function VehicleForm({
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Selected Vehicles ({entries.length})
           </h3>
-          <AnimatePresence mode="popLayout">
+          <div className="space-y-3">
             {entries.map((entry, index) => (
               <VehicleCard
                 key={entry.vehicle.id}
@@ -345,7 +366,7 @@ export function VehicleForm({
                 onRemove={() => handleRemoveVehicle(index)}
               />
             ))}
-          </AnimatePresence>
+          </div>
         </div>
       )}
 

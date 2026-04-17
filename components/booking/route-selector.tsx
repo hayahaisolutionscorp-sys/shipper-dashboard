@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import {
   IconRoute,
   IconSearch,
@@ -10,7 +9,7 @@ import {
   IconAlertCircle,
 } from "@tabler/icons-react";
 import type { AssignedRoute } from "@/services/auth.service";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
+import { useGsapStagger } from "@/lib/gsap-animations";
 
 interface RouteSelectorProps {
   routes: AssignedRoute[];
@@ -150,77 +149,7 @@ export function RouteSelector({ routes, isLoading, onSelect }: RouteSelectorProp
                 </span>
               </div>
 
-              <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                variants={listVariants}
-                initial="hidden"
-                animate="show"
-              >
-                {tenantRoutes.map((route) => (
-                  <motion.button
-                    key={`${route.tenant_id}-${route.route_code}`}
-                    variants={itemVariants}
-                    type="button"
-                    onClick={() => onSelect(route)}
-                    className="bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-sm transition-all text-left group cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center border border-border/50 group-hover:bg-primary/5 transition-colors">
-                          <IconRoute className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </div>
-                        <div>
-                          <span className="block text-sm font-semibold font-mono text-foreground">
-                            {route.route_code}
-                          </span>
-                        </div>
-                      </div>
-                      {route.rates && route.rates.length > 0 ? (
-                        <div className="text-right">
-                          {route.rates.length === 1 ? (
-                            <>
-                              <span className="block text-sm font-bold tabular-nums text-foreground">
-                                ₱{Number(parseFloat(route.rates[0].amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground uppercase font-medium">
-                                Rate
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="block text-sm font-bold tabular-nums text-foreground">
-                                ₱{Math.min(...route.rates.map((r) => Number(parseFloat(r.amount)))).toLocaleString(undefined, { minimumFractionDigits: 2 })}+
-                              </span>
-                              <span className="text-[10px] text-muted-foreground uppercase font-medium">
-                                from
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      ) : route.rate ? (
-                        <div className="text-right">
-                          <span className="block text-sm font-bold tabular-nums text-foreground">
-                            ₱{Number(parseFloat(route.rate.amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">
-                            Rate
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm p-2.5 bg-muted/30 rounded-lg border border-border/50">
-                      <span className="font-medium text-foreground truncate flex-1 text-center" title={route.src_port_name}>
-                        {route.src_port_name}
-                      </span>
-                      <IconArrowRight className="size-4 text-muted-foreground shrink-0" />
-                      <span className="font-medium text-foreground truncate flex-1 text-center" title={route.dest_port_name}>
-                        {route.dest_port_name}
-                      </span>
-                    </div>
-                  </motion.button>
-                ))}
-              </motion.div>
+              <RouteGrid tenantRoutes={tenantRoutes} onSelect={onSelect} />
             </div>
           ))}
 
@@ -245,6 +174,90 @@ export function RouteSelector({ routes, isLoading, onSelect }: RouteSelectorProp
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── RouteGrid (GSAP staggered) ──────────────────────────────────
+function RouteGrid({
+  tenantRoutes,
+  onSelect,
+}: {
+  tenantRoutes: AssignedRoute[];
+  onSelect: (route: AssignedRoute) => void;
+}) {
+  const gridRef = useGsapStagger<HTMLDivElement>([tenantRoutes], {
+    y: 6,
+    stagger: 0.024,
+    duration: 0.28,
+    ease: "power2.out",
+  });
+
+  return (
+    <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {tenantRoutes.map((route) => (
+        <button
+          key={`${route.tenant_id}-${route.route_code}`}
+          type="button"
+          onClick={() => onSelect(route)}
+          className="bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-sm hover:-translate-y-[1px] transition-all duration-200 text-left group cursor-pointer"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center border border-border/50 group-hover:bg-primary/5 transition-colors">
+                <IconRoute className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <div>
+                <span className="block text-sm font-semibold font-mono text-foreground">
+                  {route.route_code}
+                </span>
+              </div>
+            </div>
+            {route.rates && route.rates.length > 0 ? (
+              <div className="text-right">
+                {route.rates.length === 1 ? (
+                  <>
+                    <span className="block text-sm font-bold tabular-nums text-foreground">
+                      ₱{Number(parseFloat(route.rates[0].amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                      Rate
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="block text-sm font-bold tabular-nums text-foreground">
+                      ₱{Math.min(...route.rates.map((r) => Number(parseFloat(r.amount)))).toLocaleString(undefined, { minimumFractionDigits: 2 })}+
+                    </span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                      from
+                    </span>
+                  </>
+                )}
+              </div>
+            ) : route.rate ? (
+              <div className="text-right">
+                <span className="block text-sm font-bold tabular-nums text-foreground">
+                  ₱{Number(parseFloat(route.rate.amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                  Rate
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-2 text-sm p-2.5 bg-muted/30 rounded-lg border border-border/50">
+            <span className="font-medium text-foreground truncate flex-1 text-center" title={route.src_port_name}>
+              {route.src_port_name}
+            </span>
+            <IconArrowRight className="size-4 text-muted-foreground shrink-0" />
+            <span className="font-medium text-foreground truncate flex-1 text-center" title={route.dest_port_name}>
+              {route.dest_port_name}
+            </span>
+          </div>
+        </button>
+      ))}
     </div>
   );
 }

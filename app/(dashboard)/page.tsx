@@ -77,7 +77,6 @@ export default function DashboardPage() {
     queryFn: async () => {
       const [bStats, bRecent] = await Promise.allSettled([
         authService.getBookingStats(),
-        // Use same params as bookings tab first page so both share the same API cache
         authService.getBookings({ limit: 20, offset: 0 }),
       ]);
 
@@ -86,6 +85,19 @@ export default function DashboardPage() {
         stats: bStats.status === "fulfilled" ? bStats.value : null,
         recent: bookings.slice(0, 5),
       };
+    },
+    refetchInterval: 60 * 1000,
+  });
+
+  // Fetch credit balance for the stat card
+  const { data: creditData } = useQuery({
+    queryKey: ["dashboard-credit-balance"],
+    queryFn: async () => {
+      try {
+        return await authService.getCreditBalance();
+      } catch {
+        return { balance: 0 };
+      }
     },
     refetchInterval: 60 * 1000,
   });
@@ -110,7 +122,7 @@ export default function DashboardPage() {
             {shipperData?.shipper?.name || "Dashboard"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Overview of your fleet and booking performance
+            Overview of your fleet, bookings, and spending
           </p>
         </div>
         <div className="flex items-center gap-2 mt-4 md:mt-0">
@@ -127,6 +139,7 @@ export default function DashboardPage() {
         <DashboardStats
           {...stats}
           bookingStats={bookingData?.stats || null}
+          creditBalance={creditData?.balance ?? 0}
         />
       )}
 

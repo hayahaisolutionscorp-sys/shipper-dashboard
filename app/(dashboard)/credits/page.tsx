@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -25,7 +25,7 @@ import {
   type DepositMethodConfig,
   type ShipperTopUpRequest,
 } from "@/services/auth.service";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
+import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
 import { CreditsTransactionsSkeleton } from "@/components/ui/skeletons";
 
 const PAGE_SIZE = 20;
@@ -680,6 +680,9 @@ export default function CreditsPage() {
 
   const totalPages = transactions ? Math.ceil(transactions.total / PAGE_SIZE) : 0;
 
+  const { mounted: isTopUpModalMounted, overlayRef: topUpOverlayRef, panelRef: topUpPanelRef } = useGsapPresence(showTopUpModal);
+  const txListRef = useGsapStagger<HTMLDivElement>([transactions?.data]);
+
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
       {/* Header */}
@@ -904,10 +907,8 @@ export default function CreditsPage() {
               <div className="text-right">Amount</div>
             </div>
 
-            <motion.div
-              variants={listVariants}
-              initial="hidden"
-              animate="show"
+            <div
+              ref={txListRef}
               className="divide-y divide-border/50"
             >
               {transactions.data.map((tx) => {
@@ -915,9 +916,8 @@ export default function CreditsPage() {
                 const TxIcon = config.icon;
 
                 return (
-                  <motion.div
+                  <div
                     key={tx.id}
-                    variants={itemVariants}
                     className="flex flex-col md:grid md:grid-cols-[2fr_2fr_1fr_1fr] gap-4 px-6 py-4 items-start md:items-center hover:bg-muted/30 transition-colors group"
                   >
                     {/* Type badge */}
@@ -950,13 +950,13 @@ export default function CreditsPage() {
                         {config.positive ? "+" : "−"}₱{Math.abs(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-                        Bal: ₱{tx.balance_after.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        Bal: ₱{Number(tx.balance_after ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
-            </motion.div>
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -989,22 +989,17 @@ export default function CreditsPage() {
       </div>
 
       {/* Top Up Modal */}
-      <AnimatePresence>
-        {showTopUpModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={closeTopUpModal}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-card rounded-2xl border border-border w-full max-w-2xl p-6 shadow-lg z-10 max-h-[90vh] overflow-y-auto"
-            >
+      {isTopUpModalMounted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            ref={topUpOverlayRef}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeTopUpModal}
+          />
+          <div
+            ref={topUpPanelRef}
+            className="relative bg-card rounded-2xl border border-border w-full max-w-2xl p-6 shadow-lg z-10 max-h-[90vh] overflow-y-auto"
+          >
               <button
                 onClick={closeTopUpModal}
                 className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
@@ -1042,14 +1037,10 @@ export default function CreditsPage() {
                     const isInstant = method.kind === "instant";
 
                     return (
-                      <motion.button
+                      <button
                         key={method.code}
                         type="button"
                         onClick={() => setSelectedMethodCode(method.code)}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04, duration: 0.22 }}
-                        whileHover={{ y: -1.5 }}
                         className={`w-full text-left rounded-xl border px-4 py-3.5 transition-all duration-200 ${isSelected
                           ? "border-sky-500 bg-[linear-gradient(160deg,#ffffff_0%,#f4f9ff_65%,#edfffc_100%)] shadow-[0_12px_28px_-22px_rgba(0,105,200,0.9)]"
                           : "border-slate-200/90 bg-white hover:border-sky-300 hover:bg-slate-50/70"
@@ -1101,7 +1092,7 @@ export default function CreditsPage() {
                           <span>Min {formatCurrency(method.min_amount)}</span>
                           <span>Max {formatCurrency(method.max_amount)}</span>
                         </div>
-                      </motion.button>
+                      </button>
                     );
                   })}
 
@@ -1487,10 +1478,9 @@ export default function CreditsPage() {
                   </button>
                 </div>
               )}
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

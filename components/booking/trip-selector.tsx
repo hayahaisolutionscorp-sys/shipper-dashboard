@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
 import {
   IconCalendar,
   IconSearch,
@@ -13,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { authService, type AssignedRoute } from "@/services/auth.service";
 import type { TripResult } from "@/types/booking";
-import { listVariants, itemVariants } from "@/components/motion/page-transition";
+import { useGsapFadeIn, useGsapStagger } from "@/lib/gsap-animations";
 
 interface TripSelectorProps {
   route: AssignedRoute;
@@ -31,6 +30,8 @@ export function TripSelector({ route, onSelect, onBack }: TripSelectorProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useGsapFadeIn<HTMLDivElement>([error], { y: 4, duration: 0.2 });
+  const emptyRef = useGsapFadeIn<HTMLDivElement>([hasSearched, trips.length, error], { y: 4, duration: 0.2 });
 
   const handleSearch = useCallback(async () => {
     if (!departureDate) return;
@@ -153,7 +154,7 @@ export function TripSelector({ route, onSelect, onBack }: TripSelectorProps) {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
+        <div ref={errorRef} className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
           <IconAlertCircle className="size-4 shrink-0" />
           {error}
         </div>
@@ -183,7 +184,7 @@ export function TripSelector({ route, onSelect, onBack }: TripSelectorProps) {
       )}
 
       {!isSearching && hasSearched && trips.length === 0 && !error && (
-        <div className="p-8 text-center bg-card rounded-xl border border-border">
+        <div ref={emptyRef} className="p-8 text-center bg-card rounded-xl border border-border">
           <IconShip className="size-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-sm font-medium text-foreground">No trips found</h3>
           <p className="text-xs text-muted-foreground mt-1">
@@ -193,64 +194,82 @@ export function TripSelector({ route, onSelect, onBack }: TripSelectorProps) {
       )}
 
       {!isSearching && trips.length > 0 && (
-        <motion.div
-          className="space-y-3"
-          variants={listVariants}
-          initial="hidden"
-          animate="show"
+        <TripResultsList trips={trips} onSelect={onSelect} formatDate={formatDate} formatTime={formatTime} />
+      )}
+    </div>
+  );
+}
+
+// ─── TripResultsList (GSAP staggered) ────────────────────────────
+function TripResultsList({
+  trips,
+  onSelect,
+  formatDate,
+  formatTime,
+}: {
+  trips: TripResult[];
+  onSelect: (trip: TripResult) => void;
+  formatDate: (s: string) => string;
+  formatTime: (s: string, t?: string) => string;
+}) {
+  const listRef = useGsapStagger<HTMLDivElement>([trips], {
+    y: 6,
+    stagger: 0.02,
+    duration: 0.24,
+    ease: "power2.out",
+  });
+
+  return (
+    <div ref={listRef} className="space-y-3">
+      {trips.map((trip) => (
+        <button
+          key={trip.id}
+          type="button"
+          onClick={() => onSelect(trip)}
+          className="w-full bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-sm hover:-translate-y-[1px] transition-all duration-200 text-left group cursor-pointer"
         >
-          {trips.map((trip) => (
-            <motion.button
-              key={trip.id}
-              variants={itemVariants}
-              type="button"
-              onClick={() => onSelect(trip)}
-              className="w-full bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-sm transition-all text-left group cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center border border-border/50 group-hover:bg-primary/5 transition-colors">
-                    <IconShip className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {trip.vessel_name || "Vessel"}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <IconClock className="size-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(trip.departure_date)}{" "}
-                        {formatTime(trip.departure_date, trip.departure_time)}
-                      </span>
-                      <IconArrowRight className="size-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(trip.arrival_date || trip.departure_date)}{" "}
-                        {formatTime(trip.arrival_date || trip.departure_date, trip.arrival_time)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {trip.available_vehicle_capacity != null && (
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground tabular-nums">
-                        {trip.available_vehicle_capacity}
-                      </span>{" "}
-                      vehicle slots
-                    </div>
-                  )}
-                  <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-medium ${trip.status === "available" || trip.status === "open"
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-muted text-muted-foreground"
-                    }`}>
-                    {trip.status || "available"}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center border border-border/50 group-hover:bg-primary/5 transition-colors">
+                <IconShip className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {trip.vessel_name || "Vessel"}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <IconClock className="size-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(trip.departure_date)}{" "}
+                    {formatTime(trip.departure_date, trip.departure_time)}
+                  </span>
+                  <IconArrowRight className="size-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(trip.arrival_date || trip.departure_date)}{" "}
+                    {formatTime(trip.arrival_date || trip.departure_date, trip.arrival_time)}
                   </span>
                 </div>
               </div>
-            </motion.button>
-          ))}
-        </motion.div>
-      )}
+            </div>
+            <div className="text-right">
+              {trip.available_vehicle_capacity != null && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {trip.available_vehicle_capacity}
+                  </span>{" "}
+                  vehicle slots
+                </div>
+              )}
+              <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-medium ${trip.status === "available" || trip.status === "open"
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground"
+                }`}>
+                {trip.status || "available"}
+              </span>
+            </div>
+          </div>
+        </button>
+      ))}
     </div>
   );
 }
