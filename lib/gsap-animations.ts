@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState, useLayoutEffect } from "react";
 import gsap from "gsap";
 
 function toDepSignature(deps: unknown[]): string {
@@ -165,7 +165,7 @@ export function useGsapPresence(isOpen: boolean) {
   const panelRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prefersReducedMotion) {
       setMounted(isOpen);
       return;
@@ -173,66 +173,108 @@ export function useGsapPresence(isOpen: boolean) {
 
     if (isOpen) {
       setMounted(true);
-    } else if (mounted) {
-      // Animate out then unmount
-      const tl = gsap.timeline({
-        onComplete: () => setMounted(false),
-      });
-
-      if (panelRef.current) {
-        tl.to(panelRef.current, {
-          opacity: 0,
-          scale: 0.95,
-          y: 8,
-          duration: GSAP.overlay.duration,
-          ease: "power2.in",
-        }, 0);
-      }
-      if (overlayRef.current) {
-        tl.to(overlayRef.current, {
-          opacity: 0,
-          duration: GSAP.overlay.duration,
-          ease: "power2.in",
-        }, 0);
-      }
-
-      return () => {
-        tl.kill();
-      };
     }
-  }, [isOpen, prefersReducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, prefersReducedMotion]);
 
-  // Animate in when mounted changes to true
-  useEffect(() => {
-    if (!mounted) return;
-    if (prefersReducedMotion) return;
+  useLayoutEffect(() => {
+    if (!mounted || !isOpen || prefersReducedMotion) return;
 
-    // Need a tick for the DOM to render
-    const frame = requestAnimationFrame(() => {
-      if (overlayRef.current) {
-        gsap.fromTo(overlayRef.current, { opacity: 0 }, {
-          opacity: 1,
-          duration: GSAP.overlay.duration,
-          ease: GSAP.overlay.ease,
-        });
-      }
-      if (panelRef.current) {
-        gsap.fromTo(panelRef.current, {
-          opacity: 0,
-          scale: 0.95,
-          y: 8,
-        }, {
-          opacity: 1,
-          scale: 1,
-          y: 0,
-          duration: GSAP.overlay.duration + 0.05,
-          ease: GSAP.spring.ease,
-        });
-      }
+    const overlay = overlayRef.current;
+    const panel = panelRef.current;
+
+    if (overlay) {
+      gsap.killTweensOf(overlay);
+      gsap.set(overlay, { opacity: 0, willChange: "opacity" });
+    }
+
+    if (panel) {
+      gsap.killTweensOf(panel);
+      gsap.set(panel, {
+        opacity: 0,
+        scale: 0.96,
+        y: 8,
+        willChange: "transform,opacity",
+        force3D: true,
+      });
+    }
+
+    const tl = gsap.timeline();
+
+    if (overlay) {
+      tl.to(overlay, {
+        opacity: 1,
+        duration: GSAP.overlay.duration,
+        ease: GSAP.overlay.ease,
+        overwrite: "auto",
+      }, 0);
+    }
+
+    if (panel) {
+      tl.to(panel, {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: GSAP.overlay.duration + 0.05,
+        ease: GSAP.spring.ease,
+        force3D: true,
+        overwrite: "auto",
+      }, 0);
+    }
+
+    return () => {
+      tl.kill();
+      if (overlay) gsap.set(overlay, { clearProps: "willChange" });
+      if (panel) gsap.set(panel, { clearProps: "willChange" });
+    };
+  }, [mounted, isOpen, prefersReducedMotion]);
+
+  useLayoutEffect(() => {
+    if (isOpen || !mounted || prefersReducedMotion) return;
+
+    const overlay = overlayRef.current;
+    const panel = panelRef.current;
+
+    if (overlay) {
+      gsap.killTweensOf(overlay);
+      gsap.set(overlay, { willChange: "opacity" });
+    }
+
+    if (panel) {
+      gsap.killTweensOf(panel);
+      gsap.set(panel, { willChange: "transform,opacity", force3D: true });
+    }
+
+    const tl = gsap.timeline({
+      onComplete: () => setMounted(false),
     });
 
-    return () => cancelAnimationFrame(frame);
-  }, [mounted, prefersReducedMotion]);
+    if (panel) {
+      tl.to(panel, {
+        opacity: 0,
+        scale: 0.95,
+        y: 8,
+        duration: GSAP.overlay.duration,
+        ease: "power2.in",
+        force3D: true,
+        overwrite: "auto",
+      }, 0);
+    }
+
+    if (overlay) {
+      tl.to(overlay, {
+        opacity: 0,
+        duration: GSAP.overlay.duration,
+        ease: "power2.in",
+        overwrite: "auto",
+      }, 0);
+    }
+
+    return () => {
+      tl.kill();
+      if (overlay) gsap.set(overlay, { clearProps: "willChange" });
+      if (panel) gsap.set(panel, { clearProps: "willChange" });
+    };
+  }, [isOpen, mounted, prefersReducedMotion]);
 
   return { mounted, overlayRef, panelRef };
 }
@@ -245,7 +287,7 @@ export function useGsapDrawerPresence(isOpen: boolean) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prefersReducedMotion) {
       setMounted(isOpen);
       return;
@@ -253,55 +295,105 @@ export function useGsapDrawerPresence(isOpen: boolean) {
 
     if (isOpen) {
       setMounted(true);
-    } else if (mounted) {
-      const tl = gsap.timeline({
-        onComplete: () => setMounted(false),
-      });
-
-      if (drawerRef.current) {
-        tl.to(drawerRef.current, {
-          x: "100%",
-          duration: GSAP.drawer.duration,
-          ease: "power3.in",
-        }, 0);
-      }
-      if (overlayRef.current) {
-        tl.to(overlayRef.current, {
-          opacity: 0,
-          duration: GSAP.overlay.duration,
-          ease: "power2.in",
-        }, 0);
-      }
-
-      return () => {
-        tl.kill();
-      };
     }
-  }, [isOpen, prefersReducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, prefersReducedMotion]);
 
-  useEffect(() => {
-    if (!mounted) return;
-    if (prefersReducedMotion) return;
+  useLayoutEffect(() => {
+    if (!mounted || !isOpen || prefersReducedMotion) return;
 
-    const frame = requestAnimationFrame(() => {
-      if (overlayRef.current) {
-        gsap.fromTo(overlayRef.current, { opacity: 0 }, {
-          opacity: 1,
-          duration: GSAP.overlay.duration,
-          ease: GSAP.overlay.ease,
-        });
-      }
-      if (drawerRef.current) {
-        gsap.fromTo(drawerRef.current, { x: "100%" }, {
-          x: "0%",
-          duration: GSAP.drawer.duration,
-          ease: GSAP.drawer.ease,
-        });
-      }
+    const overlay = overlayRef.current;
+    const drawer = drawerRef.current;
+
+    if (overlay) {
+      gsap.killTweensOf(overlay);
+      gsap.set(overlay, { opacity: 0, willChange: "opacity" });
+    }
+
+    if (drawer) {
+      gsap.killTweensOf(drawer);
+      gsap.set(drawer, {
+        xPercent: 100,
+        autoAlpha: 0,
+        willChange: "transform,opacity",
+        force3D: true,
+      });
+    }
+
+    const tl = gsap.timeline();
+
+    if (overlay) {
+      tl.to(overlay, {
+        opacity: 1,
+        duration: GSAP.overlay.duration,
+        ease: GSAP.overlay.ease,
+        overwrite: "auto",
+      }, 0);
+    }
+
+    if (drawer) {
+      tl.to(drawer, {
+        xPercent: 0,
+        autoAlpha: 1,
+        duration: GSAP.drawer.duration,
+        ease: GSAP.drawer.ease,
+        force3D: true,
+        overwrite: "auto",
+      }, 0);
+    }
+
+    return () => {
+      tl.kill();
+      if (overlay) gsap.set(overlay, { clearProps: "willChange" });
+      if (drawer) gsap.set(drawer, { clearProps: "willChange" });
+    };
+  }, [mounted, isOpen, prefersReducedMotion]);
+
+  useLayoutEffect(() => {
+    if (isOpen || !mounted || prefersReducedMotion) return;
+
+    const overlay = overlayRef.current;
+    const drawer = drawerRef.current;
+
+    if (overlay) {
+      gsap.killTweensOf(overlay);
+      gsap.set(overlay, { willChange: "opacity" });
+    }
+
+    if (drawer) {
+      gsap.killTweensOf(drawer);
+      gsap.set(drawer, { willChange: "transform,opacity", force3D: true });
+    }
+
+    const tl = gsap.timeline({
+      onComplete: () => setMounted(false),
     });
 
-    return () => cancelAnimationFrame(frame);
-  }, [mounted, prefersReducedMotion]);
+    if (drawer) {
+      tl.to(drawer, {
+        xPercent: 100,
+        autoAlpha: 0,
+        duration: GSAP.drawer.duration,
+        ease: "power3.in",
+        force3D: true,
+        overwrite: "auto",
+      }, 0);
+    }
+
+    if (overlay) {
+      tl.to(overlay, {
+        opacity: 0,
+        duration: GSAP.overlay.duration,
+        ease: "power2.in",
+        overwrite: "auto",
+      }, 0);
+    }
+
+    return () => {
+      tl.kill();
+      if (overlay) gsap.set(overlay, { clearProps: "willChange" });
+      if (drawer) gsap.set(drawer, { clearProps: "willChange" });
+    };
+  }, [isOpen, mounted, prefersReducedMotion]);
 
   return { mounted, overlayRef, drawerRef };
 }

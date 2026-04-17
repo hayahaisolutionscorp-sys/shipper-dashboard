@@ -18,6 +18,7 @@ import { authService, type Personnel, type Vehicle } from "@/services/auth.servi
 import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
 import { PersonnelTableSkeleton } from "@/components/ui/skeletons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { OverlayPortal } from "@/components/ui/overlay-portal";
 import { logActivity } from "@/lib/activity-logger";
 
 type RoleFilter = "all" | "driver" | "helper";
@@ -263,16 +264,18 @@ export default function PersonnelPage() {
 
       {/* Add/Edit Modal */}
       {isModalMounted && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <OverlayPortal>
+        <div className="fixed inset-0 z-50 h-dvh">
           <div
             ref={modalOverlayRef}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 h-dvh bg-black/60 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <div
-            ref={modalPanelRef}
-            className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
-          >
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              ref={modalPanelRef}
+              className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
+            >
             <button
               onClick={closeModal}
               className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
@@ -390,8 +393,10 @@ export default function PersonnelPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
+        </OverlayPortal>
       )}
 
       {/* Floating Rows List */}

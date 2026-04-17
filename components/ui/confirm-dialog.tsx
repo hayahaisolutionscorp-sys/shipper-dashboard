@@ -2,6 +2,7 @@
 
 import { IconAlertTriangle, IconX } from "@tabler/icons-react";
 import { useGsapPresence } from "@/lib/gsap-animations";
+import { OverlayPortal } from "@/components/ui/overlay-portal";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -27,22 +28,24 @@ export function ConfirmDialog({
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        ref={overlayRef}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-      />
-      <div
-        ref={panelRef}
-        className="relative bg-card rounded-2xl border border-border w-full max-w-sm p-6 shadow-xl z-10"
-      >
-        <button
+    <OverlayPortal>
+      <div className="fixed inset-0 z-50 h-dvh">
+        <div
+          ref={overlayRef}
+          className="absolute inset-0 h-dvh bg-black/60 backdrop-blur-sm"
           onClick={onCancel}
-          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
-        >
-          <IconX className="size-4" />
-        </button>
+        />
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div
+            ref={panelRef}
+            className="relative bg-card rounded-2xl border border-border w-full max-w-sm p-6 shadow-xl z-10"
+          >
+            <button
+              onClick={onCancel}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+            >
+              <IconX className="size-4" />
+            </button>
 
         <div className="flex items-start gap-4">
           <div className="shrink-0 size-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
@@ -70,7 +73,9 @@ export function ConfirmDialog({
             {isLoading ? "Deleting..." : confirmLabel}
           </button>
         </div>
-      </div>
+          </div>
+        </div>
     </div>
+      </OverlayPortal>
   );
 }

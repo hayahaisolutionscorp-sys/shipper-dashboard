@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { IconX, IconReceipt, IconRoute, IconCalendarEvent, IconShip, IconLoader2 } from "@tabler/icons-react";
 import type { Booking } from "@/services/auth.service";
 import { useGsapDrawerPresence } from "@/lib/gsap-animations";
+import { OverlayPortal } from "@/components/ui/overlay-portal";
 
 interface BookingDrawerProps {
   booking: Booking | null;
@@ -10,9 +12,22 @@ interface BookingDrawerProps {
 }
 
 export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
+  const [displayBooking, setDisplayBooking] = useState<Booking | null>(booking);
   const { mounted, overlayRef, drawerRef } = useGsapDrawerPresence(!!booking);
 
-  if (!mounted || !booking) return null;
+  useEffect(() => {
+    if (booking) {
+      setDisplayBooking(booking);
+    }
+  }, [booking]);
+
+  useEffect(() => {
+    if (!mounted && !booking) {
+      setDisplayBooking(null);
+    }
+  }, [mounted, booking]);
+
+  if (!mounted || !displayBooking) return null;
 
   const statusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -29,10 +44,11 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <OverlayPortal>
+    <div className="fixed inset-0 z-50 h-dvh flex">
       <div
         ref={overlayRef}
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 h-dvh bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
@@ -47,10 +63,10 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground font-mono">
-                {booking.reference_no}
+                {displayBooking.reference_no}
               </h2>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide mt-1 ${statusColor(booking.booking_status)}`}>
-                {booking.booking_status}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide mt-1 ${statusColor(displayBooking.booking_status)}`}>
+                {displayBooking.booking_status}
               </span>
             </div>
           </div>
@@ -70,25 +86,25 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
               Trip Details
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              {booking.route_code && (
+              {displayBooking.route_code && (
                 <div className="flex items-start gap-2">
                   <IconRoute className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Route</p>
-                    <p className="text-sm font-mono font-semibold">{booking.route_code}</p>
+                    <p className="text-sm font-mono font-semibold">{displayBooking.route_code}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {booking.src_port_code} → {booking.dest_port_code}
+                      {displayBooking.src_port_code} → {displayBooking.dest_port_code}
                     </p>
                   </div>
                 </div>
               )}
-              {booking.scheduled_departure && (
+              {displayBooking.scheduled_departure && (
                 <div className="flex items-start gap-2">
                   <IconCalendarEvent className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Departure</p>
                     <p className="text-sm font-medium">
-                      {new Date(booking.scheduled_departure).toLocaleDateString("en-PH", {
+                      {new Date(displayBooking.scheduled_departure).toLocaleDateString("en-PH", {
                         weekday: "short",
                         month: "short",
                         day: "numeric",
@@ -97,12 +113,12 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
                   </div>
                 </div>
               )}
-              {booking.vessel_name && (
+              {displayBooking.vessel_name && (
                 <div className="flex items-start gap-2">
                   <IconShip className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vessel</p>
-                    <p className="text-sm font-medium">{booking.vessel_name}</p>
+                    <p className="text-sm font-medium">{displayBooking.vessel_name}</p>
                   </div>
                 </div>
               )}
@@ -119,12 +135,12 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2.5">
                 <div>
-                  <p className="text-sm font-mono font-semibold">{booking.shipper_vehicle_plate || "—"}</p>
+                  <p className="text-sm font-mono font-semibold">{displayBooking.shipper_vehicle_plate || "—"}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Vehicle</p>
                 </div>
-                {booking.shipper_rate_amount && (
+                {displayBooking.shipper_rate_amount && (
                   <span className="text-sm font-bold tabular-nums">
-                    ₱{Number(booking.shipper_rate_amount).toLocaleString()}
+                    ₱{Number(displayBooking.shipper_rate_amount).toLocaleString()}
                   </span>
                 )}
               </div>
@@ -134,31 +150,31 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
           <div className="h-px bg-border" />
 
           {/* Personnel */}
-          {(booking.shipper_driver_name || booking.shipper_helper_name) && (
+          {(displayBooking.shipper_driver_name || displayBooking.shipper_helper_name) && (
             <>
               <section className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Assigned Personnel
                 </h3>
                 <div className="space-y-2">
-                  {booking.shipper_driver_name && (
+                  {displayBooking.shipper_driver_name && (
                     <div className="flex items-center gap-2.5 bg-muted/30 rounded-lg px-3 py-2.5">
                       <div className="size-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-[10px] font-bold">
                         D
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{booking.shipper_driver_name}</p>
+                        <p className="text-sm font-medium">{displayBooking.shipper_driver_name}</p>
                         <p className="text-[11px] text-muted-foreground">Driver</p>
                       </div>
                     </div>
                   )}
-                  {booking.shipper_helper_name && (
+                  {displayBooking.shipper_helper_name && (
                     <div className="flex items-center gap-2.5 bg-muted/30 rounded-lg px-3 py-2.5">
                       <div className="size-7 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 text-[10px] font-bold">
                         H
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{booking.shipper_helper_name}</p>
+                        <p className="text-sm font-medium">{displayBooking.shipper_helper_name}</p>
                         <p className="text-[11px] text-muted-foreground">Helper</p>
                       </div>
                     </div>
@@ -177,26 +193,27 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Tenant</p>
-                <p className="font-medium">{booking.tenant_name}</p>
+                <p className="font-medium">{displayBooking.tenant_name}</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Payment</p>
-                <p className="font-medium capitalize">{booking.payment_method || "—"}</p>
+                <p className="font-medium capitalize">{displayBooking.payment_method || "—"}</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Created</p>
                 <p className="font-medium text-xs">
-                  {new Date(booking.created_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
+                  {new Date(displayBooking.created_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
                 </p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Booking ID</p>
-                <p className="font-mono text-xs break-all">{booking.id}</p>
+                <p className="font-mono text-xs break-all">{displayBooking.id}</p>
               </div>
             </div>
           </section>
         </div>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

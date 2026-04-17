@@ -172,7 +172,7 @@ export default function BookingsPage() {
             <div className="text-2xl font-semibold tabular-nums text-foreground">{data.stats.pending}</div>
           </div>
           <div className="flex flex-col p-6 rounded-xl border border-border bg-card shadow-sm bg-gradient-to-t from-violet-500/5 to-transparent">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Spend</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Expenditure</h3>
             <div className="text-2xl font-semibold tabular-nums text-foreground">₱{data.stats.total_revenue.toLocaleString()}</div>
           </div>
         </div>

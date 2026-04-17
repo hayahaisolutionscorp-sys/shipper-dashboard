@@ -23,21 +23,19 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     if (!el) return;
 
     if (prefersReducedMotion) {
-      gsap.set(el, { opacity: 1, y: 0, clearProps: "transform" });
+      gsap.set(el, { opacity: 1 });
       return;
     }
 
-    gsap.set(el, { opacity: 0, y: 6 });
+    gsap.set(el, { opacity: 0 });
 
     gsap.fromTo(
       el,
-      { opacity: 0, y: 6 },
+      { opacity: 0 },
       {
         opacity: 1,
-        y: 0,
         duration: GSAP.page.duration,
         ease: GSAP.page.ease,
-        clearProps: "transform",
       },
     );
 

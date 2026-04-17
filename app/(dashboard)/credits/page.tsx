@@ -27,6 +27,7 @@ import {
 } from "@/services/auth.service";
 import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
 import { CreditsTransactionsSkeleton } from "@/components/ui/skeletons";
+import { OverlayPortal } from "@/components/ui/overlay-portal";
 
 const PAGE_SIZE = 20;
 const SPLIT_STORAGE_KEY = "shipper_last_split_tx";
@@ -990,16 +991,18 @@ export default function CreditsPage() {
 
       {/* Top Up Modal */}
       {isTopUpModalMounted && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <OverlayPortal>
+        <div className="fixed inset-0 z-50 h-dvh">
           <div
             ref={topUpOverlayRef}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 h-dvh bg-black/60 backdrop-blur-sm"
             onClick={closeTopUpModal}
           />
-          <div
-            ref={topUpPanelRef}
-            className="relative bg-card rounded-2xl border border-border w-full max-w-2xl p-6 shadow-lg z-10 max-h-[90vh] overflow-y-auto"
-          >
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              ref={topUpPanelRef}
+              className="relative bg-card rounded-2xl border border-border w-full max-w-2xl p-6 shadow-lg z-10 max-h-[90vh] overflow-y-auto"
+            >
               <button
                 onClick={closeTopUpModal}
                 className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
@@ -1478,8 +1481,10 @@ export default function CreditsPage() {
                   </button>
                 </div>
               )}
+            </div>
           </div>
         </div>
+        </OverlayPortal>
       )}
     </div>
   );

@@ -19,6 +19,7 @@ import {
 import { authService, type ShipperAccount } from "@/services/auth.service";
 import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { OverlayPortal } from "@/components/ui/overlay-portal";
 import { TeamMembersSkeleton } from "@/components/ui/skeletons";
 
 export default function TeamPage() {
@@ -174,16 +175,18 @@ export default function TeamPage() {
 
       {/* Add Member Modal */}
       {isAddModalMounted && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <OverlayPortal>
+        <div className="fixed inset-0 z-50 h-dvh">
           <div
             ref={addModalOverlayRef}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 h-dvh bg-black/60 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <div
-            ref={addModalPanelRef}
-            className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
-          >
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              ref={addModalPanelRef}
+              className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
+            >
             <button
               onClick={closeModal}
               className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
@@ -286,8 +289,10 @@ export default function TeamPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
+        </OverlayPortal>
       )}
 
       {/* Account List */}
