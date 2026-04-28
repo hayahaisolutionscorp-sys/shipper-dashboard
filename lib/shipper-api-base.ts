@@ -1,5 +1,5 @@
 /**
- * Base URL for ayahay-api-v2 (shipper-auth, my-shipper, etc.).
+ * Base URL for the shipper API v2 (shipper-auth, my-shipper, etc.).
  * Must be an absolute http(s) URL to the Nest API — not the shipper-dashboard origin.
  */
 
@@ -43,7 +43,7 @@ export function warnIfApiBaseIsDashboardOrigin(apiBaseUrl: string): void {
     if (apiOrigin === window.location.origin) {
       loggedSameOriginWarning = true;
       console.error(
-        "[shipper-dashboard] NEXT_PUBLIC_V2_API_URL must point at ayahay-api-v2, not this Next.js app. " +
+        "[shipper-dashboard] NEXT_PUBLIC_V2_API_URL must point at the shipper API, not this Next.js app. " +
           `Use e.g. http://localhost:3002 while the dashboard runs on port 3003. Current value resolves to: ${apiBaseUrl}`,
       );
     }

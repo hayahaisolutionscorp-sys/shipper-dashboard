@@ -1,5 +1,5 @@
 /**
- * Full print tree for receipt window — mirrors ayahay-tms PrintDocument.
+ * Full print tree for receipt window — mirrors the TMS PrintDocument.
  */
 
 import type { ReceiptPrintJob } from "@/lib/receipt/build-print-jobs";

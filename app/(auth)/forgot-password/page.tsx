@@ -38,12 +38,12 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-8">
-      <div className="w-full max-w-[400px] flex flex-col gap-6">
+      <div className="w-full max-w-100 flex flex-col gap-6">
         {/* Brand Header */}
         <div className="flex flex-col items-center justify-center gap-2 text-center">
           <div className="size-14 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
             <Image
-              alt="Ayahay"
+              alt="Hayahai"
               src="/hayahai-v2.png"
               width={44}
               height={44}

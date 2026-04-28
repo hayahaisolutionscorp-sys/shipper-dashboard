@@ -1,6 +1,6 @@
 /**
  * Receipt types — mirrors the subset of TMS types needed for receipt rendering.
- * Kept in sync with ayahay-tms/lib/types/ticket-template.types.ts and booking.types.ts.
+ * Kept in sync with the TMS ticket-template and booking types.
  */
 
 export type TicketType = "PAX_OTC" | "CARGO_OTC" | "PAX_ONLINE" | "CARGO_ONLINE";

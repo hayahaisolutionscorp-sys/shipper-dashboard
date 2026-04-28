@@ -1,6 +1,6 @@
 /**
  * Field value mapping for receipt printing.
- * Ported from ayahay-tms/lib/ticket-print/field-values.ts — kept identical
+ * Ported from the TMS ticket-print field values — kept identical
  * so shipper-dashboard receipts match TMS output exactly.
  */
 
@@ -484,7 +484,7 @@ function formatCargoMeasurement(v: CargoLike): string {
 
 /**
  * Field values for one BOL (one rolling vehicle on one trip).
- * Ported from ayahay-tms `buildBOLFieldValues`.
+ * Ported from the TMS `buildBOLFieldValues`.
  */
 export function buildBOLFieldValues(
   booking: BookingView,

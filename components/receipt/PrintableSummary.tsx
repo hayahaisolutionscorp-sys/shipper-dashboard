@@ -1,6 +1,6 @@
 /**
  * Transaction summary page — inline styles only (TMS parity).
- * Ported from ayahay-tms/components/print/PrintableSummary.tsx; uses QRCodeSVG.
+ * Ported from the TMS components/print/PrintableSummary.tsx; uses QRCodeSVG.
  */
 
 import { QRCodeSVG } from "qrcode.react";

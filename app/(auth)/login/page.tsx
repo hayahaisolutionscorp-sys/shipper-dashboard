@@ -70,7 +70,7 @@ export default function LoginPage() {
           priority
         />
         {/* Gradient overlay — dark at top and bottom, lighter in middle */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/40 to-black/80" />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
@@ -127,7 +127,7 @@ export default function LoginPage() {
         {/* Mobile logo (hidden on lg+) */}
         <div className="flex lg:hidden items-center gap-3 mb-10 self-start w-full max-w-sm mx-auto">
           <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/15">
-            <Image alt="Ayahay" src="/hayahai-v2.png" width={36} height={36} className="object-contain" />
+            <Image alt="Hayahai" src="/hayahai-v2.png" width={36} height={36} className="object-contain" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="font-bold text-sm tracking-tight text-foreground">Shipper Portal</span>

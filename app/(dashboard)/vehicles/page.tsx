@@ -418,7 +418,7 @@ export default function VehiclesPage() {
                 {filteredVehicles.map((vehicle) => (
                   <div
                     key={vehicle.id}
-                    className="bg-card rounded-2xl border border-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08)] hover:border-border transition-all duration-300 grid grid-cols-[1.5fr_1.5fr_2fr_2fr_120px_100px] gap-4 px-6 py-4 items-center group relative overflow-hidden"
+                    className="bg-card rounded-2xl border border-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08)] hover:border-border transition-all duration-300 grid grid-cols-[1.5fr_1.5fr_2fr_2fr_120px_100px] gap-4 px-6 py-4 items-center group relative"
                   >
                     <div className="flex items-center gap-3 relative z-10">
                       <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center border border-border/50 group-hover:bg-background transition-colors">

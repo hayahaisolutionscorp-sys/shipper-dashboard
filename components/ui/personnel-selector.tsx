@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { IconLoader2, IconUserPlus, IconX, IconChevronDown } from "@tabler/icons-react";
 import type { Personnel } from "@/services/auth.service";
 import { useGsapDropdownPresence } from "@/lib/gsap-animations";
@@ -23,21 +24,44 @@ export function PersonnelSelector({
   isLoading,
 }: PersonnelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const { mounted, dropdownRef } = useGsapDropdownPresence(isOpen);
 
   const assigned = personnel.find((p) => p.id === assignedId);
 
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setDropdownPos({ top: rect.bottom + 6, left: rect.left });
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
+    updatePosition();
+
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideContainer = containerRef.current?.contains(target);
+      const insideDropdown = dropdownRef.current?.contains(target);
+      if (!insideContainer && !insideDropdown) {
         setIsOpen(false);
       }
     }
+
+    function handleScrollOrResize() {
+      updatePosition();
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
+  }, [isOpen, updatePosition, dropdownRef]);
 
   if (isLoading) {
     return (
@@ -48,43 +72,12 @@ export function PersonnelSelector({
     );
   }
 
-  return (
-    <div ref={containerRef} className="relative">
-      {assigned ? (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border/50">
-            <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold border border-primary/20">
-              {assigned.name.charAt(0).toUpperCase()}
-            </div>
-            <span className="text-sm font-medium text-foreground max-w-[100px] truncate">
-              {assigned.name}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-              className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <IconX className="size-3" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-muted/50 transition-all text-xs font-medium"
-        >
-          <IconUserPlus className="size-3.5" />
-          Assign {role}
-          <IconChevronDown className={`size-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-        </button>
-      )}
-
-      {mounted && (
+  const dropdown = mounted && typeof document !== "undefined"
+    ? createPortal(
         <div
           ref={dropdownRef}
-          className="absolute left-0 top-full mt-1.5 w-56 bg-card border border-border rounded-xl shadow-xl z-30 overflow-hidden"
+          style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          className="fixed w-56 bg-card border border-border rounded-xl shadow-xl z-[9999] overflow-hidden"
         >
           <div className="px-3 py-2 border-b border-border/50">
             <p className="text-xs font-semibold text-muted-foreground">
@@ -124,8 +117,45 @@ export function PersonnelSelector({
               ))
             )}
           </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <div ref={containerRef} className="relative">
+      {assigned ? (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border/50">
+            <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold border border-primary/20">
+              {assigned.name.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-sm font-medium text-foreground max-w-[100px] truncate">
+              {assigned.name}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <IconX className="size-3" />
+            </button>
+          </div>
         </div>
+      ) : (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-muted/50 transition-all text-xs font-medium"
+        >
+          <IconUserPlus className="size-3.5" />
+          Assign {role}
+          <IconChevronDown className={`size-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        </button>
       )}
+
+      {dropdown}
     </div>
   );
 }

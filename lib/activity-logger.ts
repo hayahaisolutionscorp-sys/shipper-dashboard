@@ -9,7 +9,7 @@ export interface ActivityEntry {
 }
 
 const MAX_ENTRIES = 50;
-const STORAGE_KEY = "ayahay_shipper_activity";
+const STORAGE_KEY = "shipper_activity";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

@@ -1,6 +1,6 @@
 /**
  * PrintableTicketCopy — inline-style only, zero Tailwind dependency.
- * Ported from ayahay-tms/components/print/PrintableTicketCopy.tsx.
+ * Ported from the TMS components/print/PrintableTicketCopy.tsx.
  *
  * Differences from TMS version:
  * - No useIdentityStore dependency — brand name/logo passed via props

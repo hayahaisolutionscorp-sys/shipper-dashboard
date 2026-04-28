@@ -40,7 +40,7 @@ export function AppSidebar() {
       <header className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
         <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/15">
           <Image
-            alt="Ayahay"
+            alt="Hayahai"
             className="shrink-0 object-contain"
             height={36}
             src="/hayahai-v2.png"
@@ -69,7 +69,7 @@ export function AppSidebar() {
                   : "font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <item.icon className={cn("size-[18px] shrink-0 transition-colors duration-200", isActive ? "text-primary" : "group-hover:text-foreground")} />
+              <item.icon className={cn("size-4.5 shrink-0 transition-colors duration-200", isActive ? "text-primary" : "group-hover:text-foreground")} />
               {item.title}
             </Link>
           );
@@ -121,7 +121,7 @@ export function AppSidebar() {
 
   // Desktop sidebar
   return (
-    <aside className="hidden md:flex md:w-56 md:flex-shrink-0">
+    <aside className="hidden md:flex md:w-56 md:shrink-0">
       <div className="fixed inset-y-0 left-0 w-56 border-r border-sidebar-border">
         {sidebarContent}
       </div>

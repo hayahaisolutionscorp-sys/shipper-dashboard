@@ -1,6 +1,6 @@
 /**
  * Formatting utilities for receipt field values.
- * Ported from ayahay-tms/lib/ticket-print/format.ts — kept identical for receipt continuity.
+ * Ported from the TMS ticket-print format — kept identical for receipt continuity.
  */
 
 const PHP_LOCALE = "en-PH";

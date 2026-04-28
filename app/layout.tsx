@@ -17,12 +17,16 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shipper Portal | Ayahay",
-  description: "Manage your fleet, personnel, and shipments seamlessly with the Ayahay Shipper Portal.",
-  keywords: ["shipping", "logistics", "vehicle booking", "Ayahay", "shipper dashboard"],
-  authors: [{ name: "Ayahay" }],
+  title: "Shipper Portal | Hayahai",
+  description: "Manage your fleet, personnel, and shipments seamlessly with the Hayahai Shipper Portal.",
+  keywords: ["shipping", "logistics", "vehicle booking", "Hayahai", "shipper dashboard"],
+  authors: [{ name: "Hayahai" }],
+  icons: {
+    icon: "/hayahai-v2.png",
+    apple: "/hayahai-v2.png",
+  },
   openGraph: {
-    title: "Shipper Portal | Ayahay",
+    title: "Shipper Portal | Hayahai",
     description: "Manage your fleet, personnel, and shipments seamlessly.",
     type: "website",
   },

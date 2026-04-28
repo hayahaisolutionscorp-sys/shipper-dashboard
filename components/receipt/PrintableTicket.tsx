@@ -1,6 +1,6 @@
 /**
  * PrintableTicket — wraps a single ticket copy with page-break handling.
- * Ported from ayahay-tms/components/print/PrintableTicket.tsx.
+ * Ported from the TMS components/print/PrintableTicket.tsx.
  */
 
 import type { FieldValues } from "@/lib/receipt/field-values";

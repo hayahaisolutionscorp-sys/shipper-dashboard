@@ -1,5 +1,5 @@
 /**
- * Booking QR encoding — aligned with ayahay-tms/lib/booking-qr.ts.
+ * Booking QR encoding — aligned with the TMS booking QR implementation.
  * Pipe-delimited payload (no URL) so printed receipts match TMS scanners.
  */
 

@@ -36,6 +36,6 @@ export const config = {
     /*
      * Match all paths except static files, api routes, and Next.js internals
      */
-    "/((?!_next/static|_next/image|favicon.ico|ayahay-icon.png|hayahai-v2.png|cebu-port.jpg|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|hayahai-v2.png|cebu-port.jpg|api).*)",
   ],
 };
