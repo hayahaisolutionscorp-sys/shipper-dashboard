@@ -150,11 +150,16 @@ export function VehicleCard({
             + Add helper
           </button>
         </div>
-        {entry.helpers.map((helper, hIdx) => (
+        {entry.helpers.map((helper, hIdx) => {
+          const occupiedIds = new Set(
+            entry.helpers.filter((_, i) => i !== hIdx).map((h) => h?.id).filter(Boolean),
+          );
+          const availableHelpers = helpers.filter((h) => !occupiedIds.has(h.id));
+          return (
           <div key={`helper-${hIdx}`} className="flex items-center gap-2">
             <div className="flex-1">
               <PersonnelDropdown
-                options={helpers}
+                options={availableHelpers}
                 selected={helper}
                 onSelect={(p) => onUpdateHelper(hIdx, p)}
                 onClear={() => onRemoveHelper(hIdx)}
@@ -169,7 +174,8 @@ export function VehicleCard({
               <IconTrash className="size-3.5" />
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

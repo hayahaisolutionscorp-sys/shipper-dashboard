@@ -200,8 +200,16 @@ export function buildVehicleFieldValues(
     surchargesList: formatChargeLines(nonInsuranceCharges),
     vat: formatChargeLines(breakdown?.taxes),
 
-    grandTotal: formatCurrency(vehicle.price),
-    totalOnly: formatCurrency(vehicle.price),
+    grandTotal: formatCurrency(
+      (vehicle.price ?? 0) +
+      (breakdown?.charges_total ?? 0) +
+      (breakdown?.taxes_total ?? 0),
+    ),
+    totalOnly: formatCurrency(
+      (vehicle.price ?? 0) +
+      (breakdown?.charges_total ?? 0) +
+      (breakdown?.taxes_total ?? 0),
+    ),
 
     termsAndConditions: "",
     salesInvoiceNote: "",
@@ -263,8 +271,16 @@ export function buildLooseCargoFieldValues(
     surchargesList: formatChargeLines(nonInsuranceCharges),
     vat: formatChargeLines(breakdown?.taxes),
 
-    grandTotal: formatCurrency(cargo.price),
-    totalOnly: formatCurrency(cargo.price),
+    grandTotal: formatCurrency(
+      (cargo.price ?? 0) +
+      (breakdown?.charges_total ?? 0) +
+      (breakdown?.taxes_total ?? 0),
+    ),
+    totalOnly: formatCurrency(
+      (cargo.price ?? 0) +
+      (breakdown?.charges_total ?? 0) +
+      (breakdown?.taxes_total ?? 0),
+    ),
 
     termsAndConditions: "",
     salesInvoiceNote: "",
@@ -444,7 +460,7 @@ export function buildSummaryValues(
     taxes,
     chargesTotal: formatCurrency(breakdown?.charges_total ?? 0),
     taxesTotal: formatCurrency(breakdown?.taxes_total ?? 0),
-    grandTotal: formatCurrency(booking.total_price),
+    grandTotal: formatCurrency(booking.total_price ?? 0),
     printedAt: new Date().toLocaleString("en-PH"),
     qrValue: getBookingQRValue(booking),
   };

@@ -5,6 +5,7 @@
 import { ReceiptPrintDocument } from "@/components/receipt/ReceiptPrintDocument";
 import { createElement } from "react";
 import ReactDOM from "react-dom/client";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import type { ReceiptPrintJob } from "./build-print-jobs";
 import type { SummaryValues } from "./field-values";
@@ -98,15 +99,17 @@ export async function executeReceiptPrint(options: {
   printWindow.document.body.appendChild(container);
 
   const root = ReactDOM.createRoot(container);
-  root.render(
-    createElement(ReceiptPrintDocument, {
-      jobs,
-      summary,
-      summaryCopies,
-      containerWidthCss,
-      scale,
-      settings,
-    }),
+  flushSync(() =>
+    root.render(
+      createElement(ReceiptPrintDocument, {
+        jobs,
+        summary,
+        summaryCopies,
+        containerWidthCss,
+        scale,
+        settings,
+      }),
+    ),
   );
 
   let cleanedUp = false;
@@ -125,23 +128,17 @@ export async function executeReceiptPrint(options: {
     if (printWindow.closed) cleanup();
   }, 300);
 
+  await waitForImages(printWindow.document);
+
   await new Promise<void>((resolve) => {
-    setTimeout(async () => {
-      let images = Array.from(printWindow.document.images);
-      if (images.length === 0) {
-        await new Promise((r) => setTimeout(r, 300));
-        images = Array.from(printWindow.document.images);
-      }
-      await waitForImages(printWindow.document);
-      if (!printWindow.closed) {
-        printWindow.print();
-        printWindow.addEventListener("afterprint", () => {
-          cleanup();
-          resolve();
-        }, { once: true });
-      } else {
-        resolve();
-      }
-    }, 300);
+    if (printWindow.closed) {
+      resolve();
+      return;
+    }
+    printWindow.print();
+    printWindow.addEventListener("afterprint", () => {
+      cleanup();
+      resolve();
+    }, { once: true });
   });
 }

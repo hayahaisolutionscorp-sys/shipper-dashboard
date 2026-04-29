@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { IconX, IconReceipt, IconRoute, IconCalendarEvent, IconShip, IconLoader2 } from "@tabler/icons-react";
-import type { Booking } from "@/services/auth.service";
+import { authService, type Booking } from "@/services/auth.service";
 import { useGsapDrawerPresence } from "@/lib/gsap-animations";
 import { OverlayPortal } from "@/components/ui/overlay-portal";
+import type { PaymentBreakdown } from "@/lib/receipt/types";
 
 interface BookingDrawerProps {
   booking: Booking | null;
@@ -13,17 +14,25 @@ interface BookingDrawerProps {
 
 export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
   const [displayBooking, setDisplayBooking] = useState<Booking | null>(booking);
+  const [breakdown, setBreakdown] = useState<PaymentBreakdown | null | undefined>(undefined);
   const { mounted, overlayRef, drawerRef } = useGsapDrawerPresence(!!booking);
 
   useEffect(() => {
     if (booking) {
       setDisplayBooking(booking);
+      setBreakdown(undefined);
+      authService.getReceiptData(booking.id).then((data) => {
+        setBreakdown(data?.booking?.payment_breakdown ?? null);
+      }).catch(() => {
+        setBreakdown(null);
+      });
     }
   }, [booking]);
 
   useEffect(() => {
     if (!mounted && !booking) {
       setDisplayBooking(null);
+      setBreakdown(undefined);
     }
   }, [mounted, booking]);
 
@@ -145,6 +154,68 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
                 )}
               </div>
             </div>
+          </section>
+
+          <div className="h-px bg-border" />
+
+          {/* Charge Breakdown */}
+          <section className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Price Breakdown
+            </h3>
+            {breakdown === undefined ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <IconLoader2 className="size-3.5 animate-spin" />
+                Loading charges...
+              </div>
+            ) : breakdown === null ? (
+              <p className="text-xs text-muted-foreground">No breakdown available.</p>
+            ) : (
+              <div className="space-y-1.5 text-sm">
+                {breakdown.base_fare != null && breakdown.base_fare > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Base Fare</span>
+                    <span className="tabular-nums font-medium">
+                      ₱{breakdown.base_fare.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+                {(breakdown.charges ?? [])
+                  .filter((c) => c.amount !== 0)
+                  .map((c, i) => (
+                    <div key={i} className="flex justify-between">
+                      <span className="text-muted-foreground">{c.description}</span>
+                      <span className="tabular-nums font-medium">
+                        ₱{c.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ))}
+                {(breakdown.taxes ?? [])
+                  .filter((t) => t.amount !== 0)
+                  .map((t, i) => (
+                    <div key={i} className="flex justify-between">
+                      <span className="text-muted-foreground">{t.description}</span>
+                      <span className="tabular-nums font-medium">
+                        ₱{t.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ))}
+                {(breakdown.charges?.length || breakdown.taxes?.length) ? (
+                  <div className="flex justify-between pt-1.5 mt-1 border-t border-border font-semibold">
+                    <span>Total</span>
+                    <span className="tabular-nums">
+                      ₱{(
+                        (breakdown.base_fare ?? 0) +
+                        (breakdown.charges_total ?? 0) +
+                        (breakdown.taxes_total ?? 0)
+                      ).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No additional charges.</p>
+                )}
+              </div>
+            )}
           </section>
 
           <div className="h-px bg-border" />

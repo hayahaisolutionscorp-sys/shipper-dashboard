@@ -10,6 +10,7 @@ import {
   IconCheck,
   IconCopy,
   IconClock,
+  IconLoader2,
   IconReceipt,
   IconCalendarEvent,
   IconRoute,
@@ -71,8 +72,20 @@ export default function CreateBookingPage() {
     booking_status: string;
     vehicleCount: number;
   } | null>(null);
+  const [confirmationBreakdown, setConfirmationBreakdown] = useState<import("@/lib/receipt/types").PaymentBreakdown | null | undefined>(undefined);
   const [showThermalReceipt, setShowThermalReceipt] = useState(false);
   const [stepDirection, setStepDirection] = useState<"forward" | "back">("forward");
+
+  // Fetch actual charge breakdown once booking is confirmed
+  useEffect(() => {
+    if (!bookingResult?.id) return;
+    setConfirmationBreakdown(undefined);
+    authService.getReceiptData(bookingResult.id).then((data) => {
+      setConfirmationBreakdown(data?.booking?.payment_breakdown ?? null);
+    }).catch(() => {
+      setConfirmationBreakdown(null);
+    });
+  }, [bookingResult?.id]);
 
   // Track whether the user has started the booking flow (for nav guard)
   const hasStartedBooking = currentStep !== "route" || vehicleEntries.length > 0;
@@ -561,14 +574,44 @@ export default function CreateBookingPage() {
                   </div>
                 ))}
               </div>
-              {hasRates && (
+              {confirmationBreakdown === undefined ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground px-1 py-1">
+                  <IconLoader2 className="size-3.5 animate-spin" />
+                  Loading charges...
+                </div>
+              ) : confirmationBreakdown !== null && ((confirmationBreakdown.charges?.length ?? 0) > 0 || (confirmationBreakdown.taxes?.length ?? 0) > 0) ? (
+                <div className="space-y-1.5">
+                  {(confirmationBreakdown.charges ?? []).filter((c) => c.amount !== 0).map((c, i) => (
+                    <div key={i} className="flex justify-between text-sm px-1">
+                      <span className="text-muted-foreground">{c.description}</span>
+                      <span className="tabular-nums font-medium">₱{c.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                  {(confirmationBreakdown.taxes ?? []).filter((t) => t.amount !== 0).map((t, i) => (
+                    <div key={i} className="flex justify-between text-sm px-1">
+                      <span className="text-muted-foreground">{t.description}</span>
+                      <span className="tabular-nums font-medium">₱{t.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between bg-primary/5 rounded-lg border border-primary/20 px-3 py-2.5 mt-1">
+                    <span className="text-sm font-semibold text-primary">Total</span>
+                    <span className="text-base font-bold tabular-nums text-primary">
+                      ₱{(
+                        (confirmationBreakdown.base_fare ?? 0) +
+                        (confirmationBreakdown.charges_total ?? 0) +
+                        (confirmationBreakdown.taxes_total ?? 0)
+                      ).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              ) : hasRates ? (
                 <div className="flex items-center justify-between bg-primary/5 rounded-lg border border-primary/20 px-3 py-2.5">
                   <span className="text-sm font-semibold text-primary">Total</span>
                   <span className="text-base font-bold tabular-nums text-primary">
                     ₱{receiptTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Pending notice */}
@@ -585,8 +628,9 @@ export default function CreateBookingPage() {
               <button
                 type="button"
                 onClick={() => {
-                    setStepDirection("forward");
+                  setStepDirection("forward");
                   setBookingResult(null);
+                  setConfirmationBreakdown(undefined);
                   setShowThermalReceipt(false);
                   setSelectedRoute(null);
                   setSelectedTrip(null);

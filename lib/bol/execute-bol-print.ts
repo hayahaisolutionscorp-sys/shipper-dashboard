@@ -5,6 +5,7 @@
 import { BolPrintDocument } from "@/components/bol/BolPrintDocument";
 import { createElement } from "react";
 import ReactDOM from "react-dom/client";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import type { BolPrintJob } from "./build-bol-print-jobs";
 import type { PaperConfig } from "@/lib/receipt/types";
@@ -91,12 +92,14 @@ export async function executeBolPrint(options: {
   printWindow.document.body.appendChild(container);
 
   const root = ReactDOM.createRoot(container);
-  root.render(
-    createElement(BolPrintDocument, {
-      jobs,
-      containerWidthCss,
-      scale,
-    }),
+  flushSync(() =>
+    root.render(
+      createElement(BolPrintDocument, {
+        jobs,
+        containerWidthCss,
+        scale,
+      }),
+    ),
   );
 
   let cleanedUp = false;
@@ -115,27 +118,17 @@ export async function executeBolPrint(options: {
     if (printWindow.closed) cleanup();
   }, 300);
 
+  await waitForImages(printWindow.document);
+
   await new Promise<void>((resolve) => {
-    setTimeout(async () => {
-      let images = Array.from(printWindow.document.images);
-      if (images.length === 0) {
-        await new Promise((r) => setTimeout(r, 300));
-        images = Array.from(printWindow.document.images);
-      }
-      await waitForImages(printWindow.document);
-      if (!printWindow.closed) {
-        printWindow.print();
-        printWindow.addEventListener(
-          "afterprint",
-          () => {
-            cleanup();
-            resolve();
-          },
-          { once: true },
-        );
-      } else {
-        resolve();
-      }
-    }, 300);
+    if (printWindow.closed) {
+      resolve();
+      return;
+    }
+    printWindow.print();
+    printWindow.addEventListener("afterprint", () => {
+      cleanup();
+      resolve();
+    }, { once: true });
   });
 }

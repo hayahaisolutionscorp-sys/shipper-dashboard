@@ -459,7 +459,7 @@ function ShippingLineBreakdown({ tenants }: { tenants: BookingStats["tenants"] }
     "from-rose-600/60 to-rose-500", "from-teal-600/60 to-teal-500",
   ];
 
-  const totalBookings = tenants.reduce((sum, t) => sum + t.booking_count, 0) || 1;
+  const totalBookings = tenants.reduce((sum, t) => sum + (t.booking_count ?? 0), 0) || 1;
 
   useEffect(() => {
     if (!containerRef.current || tenants.length === 0) return;
@@ -510,7 +510,7 @@ function ShippingLineBreakdown({ tenants }: { tenants: BookingStats["tenants"] }
           {/* Stacked progress bar */}
           <div className="w-full h-3 bg-muted/30 rounded-full overflow-hidden flex mb-5">
             {tenants.map((t, i) => {
-              const pct = (t.booking_count / totalBookings) * 100;
+              const pct = ((t.booking_count ?? 0) / totalBookings) * 100;
               return (
                 <div
                   key={t.tenant_id}
@@ -524,7 +524,7 @@ function ShippingLineBreakdown({ tenants }: { tenants: BookingStats["tenants"] }
           {/* Breakdown list */}
           <div className="space-y-3">
             {tenants.map((t, i) => {
-              const pct = Math.round((t.booking_count / totalBookings) * 100);
+              const pct = Math.round(((t.booking_count ?? 0) / totalBookings) * 100);
               return (
                 <div key={t.tenant_id} className="tenant-item flex items-center justify-between text-xs" style={{ opacity: 0 }}>
                   <div className="flex items-center gap-2 min-w-0">

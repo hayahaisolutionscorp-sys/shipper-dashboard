@@ -245,13 +245,19 @@ function mapConnectingTripToTripResult(raw: any): TripResult {
   const toDateStr = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-  const remainingVehicles = (raw?.segments?.[0]?.remaining_capacities?.vehicles ??
-    raw?.remaining_capacities?.vehicles ??
-    {}) as Record<string, unknown>;
-  const availableVehicleCapacity = Object.values(remainingVehicles).reduce((sum: number, v) => {
-    const n = typeof v === "number" ? v : Number(v);
-    return Number.isFinite(n) ? sum + n : sum;
-  }, 0);
+  const vcb = (raw?.segments?.[0]?.vehicle_capacity_breakdown ??
+    raw?.vehicle_capacity_breakdown) as
+    | Record<string, { remaining?: number; max?: number }>
+    | null
+    | undefined;
+  const availableVehicleCapacity = vcb
+    ? Object.values(vcb).reduce((sum: number, entry) => {
+        const n = typeof entry?.remaining === "number" ? entry.remaining : Number(entry?.remaining);
+        return Number.isFinite(n) ? sum + n : sum;
+      }, 0)
+    : typeof raw?.available_vehicle_capacity === "number"
+      ? raw.available_vehicle_capacity
+      : 0;
 
   return {
     id: raw.id,
