@@ -353,6 +353,14 @@ export default function CreateBookingPage() {
     }
   }, [bookingResult]);
 
+  // GSAP animation refs — must be called unconditionally (Rules of Hooks)
+  const cardRef = useGsapCardEntrance<HTMLDivElement>([bookingResult?.id]);
+  const successBodyRef = useGsapStagger<HTMLDivElement>(
+    [bookingResult?.id, bookingResult?.reference_no],
+    { y: 5, stagger: 0.022, duration: 0.22, ease: "power2.out" },
+  );
+  const stepRef = useGsapStepTransition<HTMLDivElement>(currentStep, stepDirection);
+
   // Success / confirmation screen
   if (bookingResult) {
     const isRequested = bookingResult.booking_status === "Requested";
@@ -405,14 +413,6 @@ export default function CreateBookingPage() {
     }));
     const receiptTotal = receiptVehicles.reduce((sum, v) => sum + v.rate, 0);
     const hasRates = receiptTotal > 0;
-    const cardRef = useGsapCardEntrance<HTMLDivElement>([]);
-    const successBodyRef = useGsapStagger<HTMLDivElement>([bookingResult.id, bookingResult.reference_no], {
-      y: 5,
-      stagger: 0.022,
-      duration: 0.22,
-      ease: "power2.out",
-    });
-
     return (
       <div className="p-4 md:p-8 max-w-lg mx-auto">
         <div
@@ -675,8 +675,6 @@ export default function CreateBookingPage() {
       </div>
     );
   }
-
-  const stepRef = useGsapStepTransition<HTMLDivElement>(currentStep, stepDirection);
 
   return (
     <div className="p-6 md:p-8 max-w-3xl mx-auto">

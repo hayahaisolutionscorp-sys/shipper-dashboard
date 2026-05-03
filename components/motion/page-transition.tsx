@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { GSAP } from "@/lib/gsap-animations";
@@ -18,7 +18,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -27,16 +27,12 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    gsap.killTweensOf(el);
     gsap.set(el, { opacity: 0 });
-
     gsap.fromTo(
       el,
       { opacity: 0 },
-      {
-        opacity: 1,
-        duration: GSAP.page.duration,
-        ease: GSAP.page.ease,
-      },
+      { opacity: 1, duration: GSAP.page.duration, ease: GSAP.page.ease },
     );
 
     return () => {

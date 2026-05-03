@@ -17,6 +17,9 @@ import {
   type Booking,
 } from "@/services/auth.service";
 import { BookingDrawer } from "@/components/booking/booking-drawer";
+import { ReceiptPrintView } from "@/components/receipt/ReceiptPrintView";
+import { BolPrintView } from "@/components/bol/BolPrintView";
+import { OverlayPortal } from "@/components/ui/overlay-portal";
 import { BookingsStatsSkeleton, BookingsTableSkeleton } from "@/components/ui/skeletons";
 import { useGsapDropdownPresence } from "@/lib/gsap-animations";
 
@@ -51,6 +54,8 @@ export default function BookingsPage() {
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [page, setPage] = useState(0);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [printReceiptId, setPrintReceiptId] = useState<string | null>(null);
+  const [printBolId, setPrintBolId] = useState<string | null>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedTenants, setSelectedTenants] = useState<number[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -172,8 +177,9 @@ export default function BookingsPage() {
             <div className="text-2xl font-semibold tabular-nums text-foreground">{data.stats.pending}</div>
           </div>
           <div className="flex flex-col p-6 rounded-xl border border-border bg-card shadow-sm bg-gradient-to-t from-violet-500/5 to-transparent">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Expenditure</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Vehicle Rate Spend</h3>
             <div className="text-2xl font-semibold tabular-nums text-foreground">₱{data.stats.total_revenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Excl. taxes &amp; surcharges</p>
           </div>
         </div>
       )}
@@ -334,7 +340,8 @@ export default function BookingsPage() {
                   <th className="h-12 px-6 font-semibold align-middle">Route</th>
                   <th className="h-12 px-6 font-semibold align-middle">Tenant</th>
                   <th className="h-12 px-6 font-semibold align-middle">Vehicle</th>
-                  <th className="h-12 px-6 font-semibold align-middle">Amount</th>
+                  <th className="h-12 px-6 font-semibold align-middle">Vehicle Rate</th>
+                  <th className="h-12 px-6 font-semibold align-middle">Booking Price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -363,6 +370,11 @@ export default function BookingsPage() {
                     </td>
                     <td className="p-6 align-middle text-foreground tabular-nums">
                       {booking.shipper_rate_amount ? `₱${Number(booking.shipper_rate_amount).toLocaleString()}` : "—"}
+                    </td>
+                    <td className="p-6 align-middle text-foreground tabular-nums font-medium">
+                      {booking.booking_total_price && Number(booking.booking_total_price) > 0
+                        ? `₱${Number(booking.booking_total_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </td>
                   </tr>
                 ))}
@@ -396,7 +408,22 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
-      <BookingDrawer booking={selectedBooking} onClose={() => setSelectedBooking(null)} />
+      <BookingDrawer
+        booking={selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+        onPrintReceipt={(id) => setPrintReceiptId(id)}
+        onPrintBol={(id) => setPrintBolId(id)}
+      />
+      {printReceiptId && (
+        <OverlayPortal>
+          <ReceiptPrintView bookingId={printReceiptId} onClose={() => setPrintReceiptId(null)} />
+        </OverlayPortal>
+      )}
+      {printBolId && (
+        <OverlayPortal>
+          <BolPrintView bookingId={printBolId} onClose={() => setPrintBolId(null)} />
+        </OverlayPortal>
+      )}
     </div>
   );
 }

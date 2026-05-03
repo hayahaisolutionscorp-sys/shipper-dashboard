@@ -111,6 +111,35 @@ export function ChartsSkeleton() {
   );
 }
 
+export function ActivityFeedSkeleton() {
+  return (
+    <div className="bg-card rounded-2xl border border-border/50 overflow-hidden animate-pulse">
+      <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-muted/40" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 w-28 bg-muted/60 rounded" />
+            <div className="h-2.5 w-36 bg-muted/30 rounded" />
+          </div>
+        </div>
+        <div className="size-7 rounded-lg bg-muted/30" />
+      </div>
+      <div className="divide-y divide-border/50">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex items-start gap-3.5 px-5 py-3.5">
+            <div className="size-8 rounded-lg bg-muted/40 shrink-0" />
+            <div className="flex-1 space-y-1.5 pt-0.5">
+              <div className="h-3 bg-muted/50 rounded w-2/5" />
+              <div className="h-2.5 bg-muted/30 rounded w-3/5" />
+            </div>
+            <div className="h-2.5 w-10 bg-muted/30 rounded shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ListSkeleton() {
   return (
     <div className="bg-card rounded-2xl border border-border/50 overflow-hidden animate-pulse">

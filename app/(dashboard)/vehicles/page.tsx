@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,15 +14,150 @@ import {
   IconPencil,
   IconSteeringWheel,
   IconTool,
+  IconChevronDown,
+  IconCheck,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import { authService, type Vehicle, type Personnel, type VehicleType } from "@/services/auth.service";
-import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
+import { useGsapPresence, useGsapStagger, useGsapDropdownPresence } from "@/lib/gsap-animations";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelSelector } from "@/components/ui/personnel-selector";
 import { VehiclesTableSkeleton } from "@/components/ui/skeletons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OverlayPortal } from "@/components/ui/overlay-portal";
 import { logActivity } from "@/lib/activity-logger";
+
+// ─── Inline personnel picker for use inside the modal ───────────────────────
+// Does NOT use a portal — renders relative to its container inside the form.
+function InlinePersonnelPicker({
+  personnel,
+  role,
+  selectedId,
+  onSelect,
+  onClear,
+}: {
+  personnel: Personnel[];
+  role: string;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onClear: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { mounted, dropdownRef } = useGsapDropdownPresence(isOpen);
+
+  const selected = personnel.find((p) => p.id === selectedId) ?? null;
+
+  const close = useCallback(() => setIsOpen(false), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handle(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) close();
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [isOpen, close]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow hover:border-ring/40"
+      >
+        {selected ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold border border-primary/20 shrink-0">
+              {selected.name.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-sm font-medium text-foreground truncate">{selected.name}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <IconUserPlus className="size-4" />
+            Select {role}
+          </span>
+        )}
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          {selected && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClear();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onClear(); }
+              }}
+              className="p-0.5 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <IconX className="size-3" />
+            </span>
+          )}
+          <IconChevronDown
+            className={`size-4 text-muted-foreground transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
+
+      {mounted && (
+        <div
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-1.5 bg-card border border-border rounded-xl shadow-xl z-[200] overflow-hidden"
+        >
+          <div className="max-h-48 overflow-y-auto p-1">
+            {personnel.length === 0 ? (
+              <p className="text-xs text-center text-muted-foreground py-4">
+                No {role.toLowerCase()} available
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { onClear(); setIsOpen(false); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left text-xs text-muted-foreground italic"
+                >
+                  None (unassigned)
+                </button>
+                {personnel.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => { onSelect(p.id); setIsOpen(false); }}
+                    disabled={p.id === selectedId}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold border border-primary/20 shrink-0">
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                      {p.phone && (
+                        <p className="text-[11px] text-muted-foreground truncate">{p.phone}</p>
+                      )}
+                    </div>
+                    {p.id === selectedId && (
+                      <IconCheck className="size-3 text-primary shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Status radio cards ──────────────────────────────────────────────────────
+const STATUS_CARDS = [
+  { value: "active", label: "Active", dot: "bg-emerald-500" },
+  { value: "maintenance", label: "Maintenance", dot: "bg-amber-500" },
+  { value: "retired", label: "Retired", dot: "bg-gray-400" },
+];
 
 export default function VehiclesPage() {
   const queryClient = useQueryClient();
@@ -32,7 +167,21 @@ export default function VehiclesPage() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Vehicle | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [formData, setFormData] = useState<{ plate_number: string; vehicle_type: string; vehicle_type_id: number | "" }>({ plate_number: "", vehicle_type: "", vehicle_type_id: "" });
+  const [formData, setFormData] = useState<{
+    plate_number: string;
+    vehicle_type: string;
+    vehicle_type_id: number | "";
+    status: string;
+    driver_id: string | null;
+    helper_id: string | null;
+  }>({
+    plate_number: "",
+    vehicle_type: "",
+    vehicle_type_id: "",
+    status: "active",
+    driver_id: null,
+    helper_id: null,
+  });
 
   const { data: vehicles = [], isPending: vehiclesLoading } = useQuery({
     queryKey: ["my-vehicles"],
@@ -51,7 +200,7 @@ export default function VehiclesPage() {
     queryFn: async () => {
       try {
         return await authService.getPersonnel();
-      } catch (error) {
+      } catch {
         return [];
       }
     },
@@ -62,7 +211,7 @@ export default function VehiclesPage() {
     queryFn: async () => {
       try {
         return await authService.getVehicleTypes();
-      } catch (error) {
+      } catch {
         return [];
       }
     },
@@ -72,13 +221,27 @@ export default function VehiclesPage() {
 
   function openAddModal() {
     setEditingVehicle(null);
-    setFormData({ plate_number: "", vehicle_type: "", vehicle_type_id: "" });
+    setFormData({
+      plate_number: "",
+      vehicle_type: "",
+      vehicle_type_id: "",
+      status: "active",
+      driver_id: null,
+      helper_id: null,
+    });
     setShowModal(true);
   }
 
   function openEditModal(vehicle: Vehicle) {
     setEditingVehicle(vehicle);
-    setFormData({ plate_number: vehicle.plate_number, vehicle_type: vehicle.vehicle_type, vehicle_type_id: vehicle.vehicle_type_id ?? "" });
+    setFormData({
+      plate_number: vehicle.plate_number,
+      vehicle_type: vehicle.vehicle_type,
+      vehicle_type_id: vehicle.vehicle_type_id ?? "",
+      status: vehicle.status ?? "active",
+      driver_id: vehicle.driver?.id ?? null,
+      helper_id: vehicle.helper?.id ?? null,
+    });
     setShowModal(true);
   }
 
@@ -93,26 +256,54 @@ export default function VehiclesPage() {
 
     setIsSubmitting(true);
     const isEdit = !!editingVehicle;
-    const submitData = {
-      plate_number: formData.plate_number,
-      vehicle_type: formData.vehicle_type,
-      vehicle_type_id: formData.vehicle_type_id !== "" ? formData.vehicle_type_id : undefined,
-    };
 
     try {
+      const vehiclePayload = {
+        plate_number: formData.plate_number,
+        vehicle_type: formData.vehicle_type,
+        vehicle_type_id: formData.vehicle_type_id !== "" ? formData.vehicle_type_id : undefined,
+        status: formData.status,
+      };
+
       if (isEdit) {
-        await authService.updateVehicle(editingVehicle!.id, submitData);
-        logActivity("vehicle", "Vehicle Updated", `${submitData.plate_number} · ${submitData.vehicle_type}`);
+        await authService.updateVehicle(editingVehicle!.id, vehiclePayload);
+
+        // Driver changes
+        const oldDriverId = editingVehicle!.driver?.id ?? null;
+        if (formData.driver_id !== oldDriverId) {
+          if (formData.driver_id) {
+            await authService.assignDriver(editingVehicle!.id, formData.driver_id);
+          } else if (oldDriverId) {
+            await authService.removeDriver(editingVehicle!.id);
+          }
+        }
+
+        // Helper changes
+        const oldHelperId = editingVehicle!.helper?.id ?? null;
+        if (formData.helper_id !== oldHelperId) {
+          if (formData.helper_id) {
+            await authService.assignHelper(editingVehicle!.id, formData.helper_id);
+          } else if (oldHelperId) {
+            await authService.removeHelper(editingVehicle!.id);
+          }
+        }
+
+        logActivity("vehicle", "Vehicle Updated", `${vehiclePayload.plate_number} · ${vehiclePayload.vehicle_type}`);
       } else {
-        await authService.createVehicle(submitData);
-        logActivity("vehicle", "Vehicle Added", `${submitData.plate_number} · ${submitData.vehicle_type}`);
+        const created = await authService.createVehicle(vehiclePayload);
+
+        if (created?.id) {
+          if (formData.driver_id) await authService.assignDriver(created.id, formData.driver_id);
+          if (formData.helper_id) await authService.assignHelper(created.id, formData.helper_id);
+        }
+
+        logActivity("vehicle", "Vehicle Added", `${vehiclePayload.plate_number} · ${vehiclePayload.vehicle_type}`);
       }
 
       toast.success(isEdit ? "Vehicle updated successfully" : "Vehicle added successfully");
       closeModal();
       await queryClient.invalidateQueries({ queryKey: ["my-vehicles"] });
     } catch (error: any) {
-      console.error("Failed to save vehicle", error);
       toast.error(isEdit ? "Failed to update vehicle" : "Failed to add vehicle", {
         description: error.message || "Something went wrong",
       });
@@ -287,82 +478,156 @@ export default function VehiclesPage() {
       {/* Add/Edit Modal */}
       {isModalMounted && (
         <OverlayPortal>
-        <div className="fixed inset-0 z-50 h-dvh">
-          <div
-            ref={modalOverlayRef}
-            className="absolute inset-0 h-dvh bg-black/60 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-          <div className="flex min-h-full items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 h-dvh">
             <div
-              ref={modalPanelRef}
-              className="relative bg-card rounded-2xl border border-border w-full max-w-md p-6 shadow-lg z-10"
-            >
-            <button
+              ref={modalOverlayRef}
+              className="absolute inset-0 h-dvh bg-black/60 backdrop-blur-sm"
               onClick={closeModal}
-              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
-            >
-              <IconX className="size-4" />
-            </button>
-            <h2 className="text-xl font-semibold mb-6 tracking-tight">
-              {editingVehicle ? "Edit Vehicle" : "Add New Vehicle"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
-                  Plate Number
-                </label>
-                <input
-                  type="text"
-                  value={formData.plate_number}
-                  onChange={(e) => setFormData({ ...formData, plate_number: e.target.value.toUpperCase() })}
-                  placeholder="ABC 1234"
-                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-mono"
-                  required
-                />
+            />
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div
+                ref={modalPanelRef}
+                className="relative bg-card rounded-2xl border border-border w-full max-w-md shadow-lg z-10"
+              >
+                <div className="p-6 pb-0">
+                  <button
+                    onClick={closeModal}
+                    className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+                  >
+                    <IconX className="size-4" />
+                  </button>
+                  <h2 className="text-xl font-semibold mb-1 tracking-tight">
+                    {editingVehicle ? "Edit Vehicle" : "Add New Vehicle"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {editingVehicle
+                      ? "Update vehicle details, status, and personnel assignments."
+                      : "Fill in the vehicle details and optionally assign personnel."}
+                  </p>
+                </div>
+
+                <div className="px-6 pb-6 max-h-[80dvh] overflow-y-auto">
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Plate Number */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Plate Number</label>
+                      <input
+                        type="text"
+                        value={formData.plate_number}
+                        onChange={(e) => setFormData({ ...formData, plate_number: e.target.value.toUpperCase() })}
+                        placeholder="ABC 1234"
+                        className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-mono"
+                        required
+                      />
+                    </div>
+
+                    {/* Vehicle Type */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Vehicle Type</label>
+                      <div className="relative">
+                        <select
+                          value={formData.vehicle_type_id}
+                          onChange={(e) => {
+                            const id = Number(e.target.value);
+                            const vt = vehicleTypes.find((t) => t.id === id);
+                            setFormData({ ...formData, vehicle_type_id: id || "", vehicle_type: vt?.name ?? "" });
+                          }}
+                          className="w-full appearance-none px-3 py-2.5 pr-9 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+                          required
+                        >
+                          <option value="">Select type</option>
+                          {vehicleTypes.map((type) => (
+                            <option key={type.id} value={type.id}>{type.name}</option>
+                          ))}
+                        </select>
+                        <IconChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Status</label>
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {STATUS_CARDS.map((s) => (
+                          <label
+                            key={s.value}
+                            className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border cursor-pointer transition-all select-none ${
+                              formData.status === s.value
+                                ? "bg-primary/5 border-primary ring-1 ring-primary"
+                                : "bg-background border-border hover:border-primary/40"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="vehicle-status"
+                              value={s.value}
+                              checked={formData.status === s.value}
+                              onChange={() => setFormData({ ...formData, status: s.value })}
+                              className="sr-only"
+                            />
+                            <span className={`size-2.5 rounded-full ${s.dot}`} />
+                            <span className="text-xs font-medium capitalize">{s.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Driver */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <IconSteeringWheel className="size-4 text-muted-foreground" />
+                        Driver
+                        <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                      </label>
+                      <InlinePersonnelPicker
+                        personnel={drivers}
+                        role="driver"
+                        selectedId={formData.driver_id}
+                        onSelect={(id) => setFormData({ ...formData, driver_id: id })}
+                        onClear={() => setFormData({ ...formData, driver_id: null })}
+                      />
+                    </div>
+
+                    {/* Helper */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <IconTool className="size-4 text-muted-foreground" />
+                        Helper
+                        <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                      </label>
+                      <InlinePersonnelPicker
+                        personnel={helpers}
+                        role="helper"
+                        selectedId={formData.helper_id}
+                        onSelect={(id) => setFormData({ ...formData, helper_id: id })}
+                        onClear={() => setFormData({ ...formData, helper_id: null })}
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={closeModal}
+                        className="flex-1 px-4 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-muted transition-colors"
+                        disabled={isSubmitting}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                      >
+                        {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
+                        {isSubmitting ? "Saving..." : editingVehicle ? "Save Changes" : "Create Vehicle"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
-                  Vehicle Type
-                </label>
-                <select
-                  value={formData.vehicle_type_id}
-                  onChange={(e) => {
-                    const id = Number(e.target.value);
-                    const vt = vehicleTypes.find((t) => t.id === id);
-                    setFormData({ ...formData, vehicle_type_id: id || "", vehicle_type: vt?.name ?? "" });
-                  }}
-                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
-                  required
-                >
-                  <option value="">Select type</option>
-                  {vehicleTypes.map((type) => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-muted transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
-                  {isSubmitting ? "Saving..." : editingVehicle ? "Save Changes" : "Create Vehicle"}
-                </button>
-              </div>
-            </form>
             </div>
           </div>
-        </div>
         </OverlayPortal>
       )}
 
@@ -411,10 +676,7 @@ export default function VehiclesPage() {
               </div>
 
               {/* List Body */}
-              <div
-                ref={listRef}
-                className="flex flex-col gap-3"
-              >
+              <div ref={listRef} className="flex flex-col gap-3">
                 {filteredVehicles.map((vehicle) => (
                   <div
                     key={vehicle.id}

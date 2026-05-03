@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { IconX, IconReceipt, IconRoute, IconCalendarEvent, IconShip, IconLoader2 } from "@tabler/icons-react";
+import { IconX, IconReceipt, IconRoute, IconCalendarEvent, IconShip, IconLoader2, IconPrinter, IconFileText } from "@tabler/icons-react";
 import { authService, type Booking } from "@/services/auth.service";
 import { useGsapDrawerPresence } from "@/lib/gsap-animations";
 import { OverlayPortal } from "@/components/ui/overlay-portal";
@@ -10,9 +10,11 @@ import type { PaymentBreakdown } from "@/lib/receipt/types";
 interface BookingDrawerProps {
   booking: Booking | null;
   onClose: () => void;
+  onPrintReceipt: (bookingId: string) => void;
+  onPrintBol: (bookingId: string) => void;
 }
 
-export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
+export function BookingDrawer({ booking, onClose, onPrintReceipt, onPrintBol }: BookingDrawerProps) {
   const [displayBooking, setDisplayBooking] = useState<Booking | null>(booking);
   const [breakdown, setBreakdown] = useState<PaymentBreakdown | null | undefined>(undefined);
   const { mounted, overlayRef, drawerRef } = useGsapDrawerPresence(!!booking);
@@ -148,9 +150,12 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
                   <p className="text-xs text-muted-foreground mt-0.5">Vehicle</p>
                 </div>
                 {displayBooking.shipper_rate_amount && (
-                  <span className="text-sm font-bold tabular-nums">
-                    ₱{Number(displayBooking.shipper_rate_amount).toLocaleString()}
-                  </span>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vehicle Rate</p>
+                    <span className="text-sm font-bold tabular-nums">
+                      ₱{Number(displayBooking.shipper_rate_amount).toLocaleString()}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -160,9 +165,20 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
 
           {/* Charge Breakdown */}
           <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Price Breakdown
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Price Breakdown
+              </h3>
+              {breakdown != null && (
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  ₱{(
+                    (breakdown.base_fare ?? 0) +
+                    (breakdown.charges_total ?? 0) +
+                    (breakdown.taxes_total ?? 0)
+                  ).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
             {breakdown === undefined ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <IconLoader2 className="size-3.5 animate-spin" />
@@ -281,6 +297,28 @@ export function BookingDrawer({ booking, onClose }: BookingDrawerProps) {
                 <p className="font-mono text-xs break-all">{displayBooking.id}</p>
               </div>
             </div>
+          </section>
+
+          <div className="h-px bg-border" />
+
+          {/* Print Actions */}
+          <section className="flex gap-3 pb-2">
+            <button
+              type="button"
+              onClick={() => onPrintReceipt(displayBooking.id)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <IconPrinter className="size-4" />
+              Print Receipt
+            </button>
+            <button
+              type="button"
+              onClick={() => onPrintBol(displayBooking.id)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <IconFileText className="size-4" />
+              Print BoL
+            </button>
           </section>
         </div>
       </div>

@@ -8,25 +8,22 @@ import {
   type AssignedRoute,
 } from "@/services/auth.service";
 import { useQuery } from "@tanstack/react-query";
-import { StatsSkeleton, ChartsSkeleton, ListSkeleton } from "@/components/dashboard/skeletons";
+import { StatsSkeleton, ChartsSkeleton, ListSkeleton, ActivityFeedSkeleton } from "@/components/dashboard/skeletons";
 
 const DashboardStats = dynamic(() => import("@/components/dashboard/dashboard-stats"), {
   loading: () => <StatsSkeleton />,
-  ssr: false,
 });
 const DashboardCharts = dynamic(() => import("@/components/dashboard/dashboard-charts"), {
   loading: () => <ChartsSkeleton />,
-  ssr: false,
 });
 const RecentBookings = dynamic(() => import("@/components/dashboard/recent-bookings"), {
   loading: () => <ListSkeleton />,
-  ssr: false,
 });
 const FleetStatus = dynamic(() => import("@/components/dashboard/fleet-status"), {
   loading: () => <ListSkeleton />,
-  ssr: false,
 });
 const ActivityFeed = dynamic(() => import("@/components/dashboard/activity-feed"), {
+  loading: () => <ActivityFeedSkeleton />,
   ssr: false,
 });
 
@@ -133,7 +130,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {isLoadingFleet ? (
+      {(isLoadingFleet || isLoadingBookings || !creditData) ? (
         <StatsSkeleton />
       ) : (
         <DashboardStats

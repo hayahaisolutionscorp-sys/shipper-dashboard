@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { authService } from "@/services/auth.service";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { PageTransition } from "@/components/motion/page-transition";
@@ -12,12 +12,11 @@ export default function DashboardLayout({
 }) {
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!authService.isAuthenticated()) {
       window.location.replace("/login");
       return;
     }
-
     setReady(true);
   }, []);
 

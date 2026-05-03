@@ -296,7 +296,7 @@ export function BookingReview({
               </div>
               {creditBalance !== undefined && creditBalance < estimatedTotal && (
                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                  Insufficient balance. You need ₱{(estimatedTotal - creditBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} more.
+                  Balance may be insufficient. Est. vehicle rate alone is ₱{(estimatedTotal - creditBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} over your balance. Final total including taxes and surcharges may be higher.
                 </p>
               )}
             </div>
@@ -324,10 +324,10 @@ export function BookingReview({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-primary">
-                Estimated Total
+                Est. Vehicle Rate
               </p>
               <p className="text-xs text-primary/70 mt-0.5">
-                {vehicleEntries.length} vehicle{vehicleEntries.length !== 1 ? "s" : ""}
+                {vehicleEntries.length} vehicle{vehicleEntries.length !== 1 ? "s" : ""} · excl. taxes &amp; surcharges
               </p>
             </div>
             <p className="text-xl font-bold tabular-nums text-primary">

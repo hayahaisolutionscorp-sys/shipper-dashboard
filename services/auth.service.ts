@@ -963,6 +963,7 @@ export interface Booking {
   shipper_helper_name: string | null;
   shipper_rate_amount: string | null;
   shipper_rate_currency: string | null;
+  booking_total_price: string | null;
   has_cargo: boolean;
   has_passengers: boolean;
   bir_invoice_no: string | null;

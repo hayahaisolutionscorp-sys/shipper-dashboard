@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import gsap from "gsap";
 import { IconArrowUpRight } from "@tabler/icons-react";
 import type { BookingStats } from "@/services/auth.service";
@@ -17,13 +17,25 @@ interface DashboardChartsProps {
 /* ────────────────────────────────────────────────────────────
  * 1. BOOKING VOLUME — Area chart with gradient fill (top-left)
  * ──────────────────────────────────────────────────────────── */
+function padChartData(data: { month: string; count: number }[]): { month: string; count: number }[] {
+  if (data.length !== 1) return data;
+  const [point] = data;
+  const [year, month] = point.month.split("-").map(Number);
+  const prev = new Date(year, month - 2, 1);
+  const next = new Date(year, month, 1);
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return [{ month: fmt(prev), count: 0 }, point, { month: fmt(next), count: 0 }];
+}
+
 function BookingVolumeChart({ data }: { data: { month: string; count: number }[] }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
+  const paddedData = useMemo(() => padChartData(data), [data]);
+
   const drawChart = useCallback(() => {
-    if (!svgRef.current || data.length === 0) return;
+    if (!svgRef.current || paddedData.length === 0) return;
     const svg = svgRef.current;
     const width = svg.clientWidth || 600;
     const height = svg.clientHeight || 220;
@@ -31,7 +43,7 @@ function BookingVolumeChart({ data }: { data: { month: string; count: number }[]
     const chartW = width - padding.left - padding.right;
     const chartH = height - padding.top - padding.bottom;
 
-    const maxVal = Math.max(...data.map((d) => d.count), 1);
+    const maxVal = Math.max(...paddedData.map((d) => d.count), 1);
 
     // Clear previous content
     svg.innerHTML = "";
@@ -103,8 +115,8 @@ function BookingVolumeChart({ data }: { data: { month: string; count: number }[]
     }
 
     // Points
-    const points = data.map((d, i) => ({
-      x: data.length > 1 ? (i / (data.length - 1)) * chartW : chartW / 2,
+    const points = paddedData.map((d, i) => ({
+      x: paddedData.length > 1 ? (i / (paddedData.length - 1)) * chartW : chartW / 2,
       y: chartH - (d.count / maxVal) * chartH,
     }));
 
@@ -164,7 +176,7 @@ function BookingVolumeChart({ data }: { data: { month: string; count: number }[]
       xLabel.setAttribute("fill", "var(--muted-foreground)");
       xLabel.setAttribute("font-size", "10");
       xLabel.setAttribute("font-family", "inherit");
-      xLabel.textContent = new Date(`${data[i].month}-01`).toLocaleDateString("en", { month: "short" });
+      xLabel.textContent = new Date(`${paddedData[i].month}-01`).toLocaleDateString("en", { month: "short" });
       g.append(xLabel);
     });
 
@@ -197,7 +209,7 @@ function BookingVolumeChart({ data }: { data: { month: string; count: number }[]
       }, 0.2 + i * 0.05);
     });
 
-  }, [data]);
+  }, [paddedData]);
 
   useEffect(() => {
     drawChart();

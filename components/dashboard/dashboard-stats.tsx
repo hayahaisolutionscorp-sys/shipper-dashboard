@@ -63,55 +63,42 @@ const StatCard = ({
   const valueRef = useRef<HTMLParagraphElement>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
+  // Entrance — runs once on mount, never on value change
   useEffect(() => {
-    if (!cardRef.current) return;
-
     const card = cardRef.current;
-
+    if (!card) return;
     if (prefersReducedMotion) {
       gsap.set(card, { opacity: 1, y: 0, scale: 1, clearProps: "transform" });
       return;
     }
-
-    const entranceTween = gsap.fromTo(
+    const tween = gsap.fromTo(
       card,
       { opacity: 0, y: 8, scale: 0.99 },
-      {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: GSAP.springSnap.duration,
-        ease: "power2.out",
-      },
+      { opacity: 1, y: 0, scale: 1, duration: GSAP.springSnap.duration, ease: "power2.out" },
     );
+    return () => { tween.kill(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefersReducedMotion]);
 
-    if (animateNumber && valueRef.current && value > 0) {
-      const obj = { val: 0 };
-      const countTween = gsap.to(obj, {
-        val: value,
-        duration: 0.9,
-        ease: "power2.out",
-        delay: 0.1,
-        snap: { val: 1 },
-        onUpdate: () => {
-          if (valueRef.current) {
-            if (prefix === "₱") {
-              valueRef.current.textContent = `₱${Math.round(obj.val).toLocaleString()}`;
-            } else {
-              valueRef.current.textContent = `${prefix}${Math.round(obj.val).toLocaleString()}`;
-            }
-          }
-        },
-      });
-
-      return () => {
-        entranceTween.kill();
-        countTween.kill();
-      };
-    }
-    return () => {
-      entranceTween.kill();
-    };
+  // Count — runs when value becomes available
+  useEffect(() => {
+    if (!animateNumber || !valueRef.current || value <= 0 || prefersReducedMotion) return;
+    const obj = { val: 0 };
+    const tween = gsap.to(obj, {
+      val: value,
+      duration: 0.9,
+      ease: "power2.out",
+      delay: 0.1,
+      snap: { val: 1 },
+      onUpdate: () => {
+        if (valueRef.current) {
+          valueRef.current.textContent = prefix === "₱"
+            ? `₱${Math.round(obj.val).toLocaleString()}`
+            : `${prefix}${Math.round(obj.val).toLocaleString()}`;
+        }
+      },
+    });
+    return () => { tween.kill(); };
   }, [value, animateNumber, prefix, prefersReducedMotion]);
 
   return (

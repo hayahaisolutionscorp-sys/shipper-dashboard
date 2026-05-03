@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,7 +12,8 @@ import {
   IconLoader2,
   IconX,
   IconPencil,
-  IconSearch
+  IconSearch,
+  IconChevronDown,
 } from "@tabler/icons-react";
 import { authService, type Personnel, type Vehicle } from "@/services/auth.service";
 import { useGsapPresence, useGsapStagger } from "@/lib/gsap-animations";
@@ -22,6 +23,109 @@ import { OverlayPortal } from "@/components/ui/overlay-portal";
 import { logActivity } from "@/lib/activity-logger";
 
 type RoleFilter = "all" | "driver" | "helper";
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function DateOfBirthPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const parsed = useMemo(() => {
+    if (!value) return { year: 0, month: 0, day: 0 };
+    const [y, m, d] = value.split("-").map(Number);
+    return { year: y, month: m, day: d };
+  }, [value]);
+
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(
+    () => Array.from({ length: currentYear - 1939 }, (_, i) => currentYear - i),
+    [currentYear],
+  );
+
+  const daysInMonth = parsed.year && parsed.month
+    ? new Date(parsed.year, parsed.month, 0).getDate()
+    : 31;
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  function update(year: number, month: number, day: number) {
+    if (year && month && day) {
+      const maxDay = new Date(year, month, 0).getDate();
+      const safe = Math.min(day, maxDay);
+      onChange(
+        `${year}-${String(month).padStart(2, "0")}-${String(safe).padStart(2, "0")}`,
+      );
+    } else {
+      onChange(null);
+    }
+  }
+
+  const selectCls =
+    "w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow appearance-none cursor-pointer pr-8 text-foreground";
+
+  function Sel({
+    value: v,
+    placeholder,
+    onChange: onCh,
+    children,
+  }: {
+    value: number;
+    placeholder: string;
+    onChange: (n: number) => void;
+    children: React.ReactNode;
+  }) {
+    return (
+      <div className="relative">
+        <select
+          value={v || ""}
+          onChange={(e) => onCh(parseInt(e.target.value) || 0)}
+          className={selectCls}
+        >
+          <option value="">{placeholder}</option>
+          {children}
+        </select>
+        <IconChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <Sel
+        value={parsed.month}
+        placeholder="Month"
+        onChange={(m) => update(parsed.year, m, parsed.day)}
+      >
+        {MONTHS.map((name, i) => (
+          <option key={i + 1} value={i + 1}>{name}</option>
+        ))}
+      </Sel>
+      <Sel
+        value={parsed.day}
+        placeholder="Day"
+        onChange={(d) => update(parsed.year, parsed.month, d)}
+      >
+        {days.map((d) => (
+          <option key={d} value={d}>{d}</option>
+        ))}
+      </Sel>
+      <Sel
+        value={parsed.year}
+        placeholder="Year"
+        onChange={(y) => update(y, parsed.month, parsed.day)}
+      >
+        {years.map((y) => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </Sel>
+    </div>
+  );
+}
 
 export default function PersonnelPage() {
   const queryClient = useQueryClient();
@@ -313,41 +417,41 @@ export default function PersonnelPage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">
-                  Sex (Optional)
+                  Sex <span className="text-muted-foreground font-normal">(Optional)</span>
                 </label>
-                <select
-                  value={formData.sex ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setFormData({
-                      ...formData,
-                      sex: (v === "male" || v === "female" ? v : null) as
-                        | "male"
-                        | "female"
-                        | null,
-                    });
-                  }}
-                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
-                >
-                  <option value="">Unspecified</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: null, label: "—" },
+                    { value: "male", label: "Male" },
+                    { value: "female", label: "Female" },
+                  ] as const).map(({ value, label }) => (
+                    <label
+                      key={label}
+                      className={`flex items-center justify-center p-2.5 rounded-lg border cursor-pointer transition-all select-none ${
+                        formData.sex === value
+                          ? "bg-primary/5 border-primary ring-1 ring-primary text-foreground"
+                          : "bg-background border-border hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="sex"
+                        className="sr-only"
+                        checked={formData.sex === value}
+                        onChange={() => setFormData({ ...formData, sex: value })}
+                      />
+                      <span className="text-sm font-medium">{label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">
-                  Date of Birth (Optional)
+                  Date of Birth <span className="text-muted-foreground font-normal">(Optional)</span>
                 </label>
-                <input
-                  type="date"
-                  value={formData.date_of_birth ?? ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      date_of_birth: e.target.value || null,
-                    })
-                  }
-                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+                <DateOfBirthPicker
+                  value={formData.date_of_birth}
+                  onChange={(v) => setFormData({ ...formData, date_of_birth: v })}
                 />
               </div>
               <div className="space-y-3">

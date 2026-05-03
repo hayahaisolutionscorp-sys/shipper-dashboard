@@ -8,6 +8,13 @@ const BACKEND_URL = (
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
+  experimental: {
+    optimizePackageImports: ["@tabler/icons-react", "lucide-react"],
+  },
+  images: {
+    minimumCacheTTL: 3600,
+  },
   async rewrites() {
     return [
       {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   IconCar,
   IconUsers,
@@ -37,16 +37,14 @@ function formatTimestamp(iso: string): string {
 
 export default function ActivityFeed() {
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
-  const [, setTick] = useState(0);
 
-  const refresh = () => setActivities(getActivities());
-
-  useEffect(() => { refresh(); }, []);
+  const refresh = useCallback(() => setActivities(getActivities()), []);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    refresh();
+    const id = setInterval(refresh, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [refresh]);
 
   return (
     <div className="bg-card rounded-2xl border border-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
