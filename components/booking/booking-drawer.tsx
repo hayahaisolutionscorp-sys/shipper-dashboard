@@ -10,8 +10,8 @@ import type { PaymentBreakdown } from "@/lib/receipt/types";
 interface BookingDrawerProps {
   booking: Booking | null;
   onClose: () => void;
-  onPrintReceipt: (bookingId: string) => void;
-  onPrintBol: (bookingId: string) => void;
+  onPrintReceipt?: (bookingId: string) => void;
+  onPrintBol?: (bookingId: string) => void;
 }
 
 export function BookingDrawer({ booking, onClose, onPrintReceipt, onPrintBol }: BookingDrawerProps) {
@@ -302,24 +302,30 @@ export function BookingDrawer({ booking, onClose, onPrintReceipt, onPrintBol }: 
           <div className="h-px bg-border" />
 
           {/* Print Actions */}
-          <section className="flex gap-3 pb-2">
-            <button
-              type="button"
-              onClick={() => onPrintReceipt(displayBooking.id)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <IconPrinter className="size-4" />
-              Print Receipt
-            </button>
-            <button
-              type="button"
-              onClick={() => onPrintBol(displayBooking.id)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <IconFileText className="size-4" />
-              Print BoL
-            </button>
-          </section>
+          {(onPrintReceipt || onPrintBol) && (
+            <section className="flex gap-3 pb-2">
+              {onPrintReceipt && (
+                <button
+                  type="button"
+                  onClick={() => onPrintReceipt(displayBooking.id)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <IconPrinter className="size-4" />
+                  Print Receipt
+                </button>
+              )}
+              {onPrintBol && (
+                <button
+                  type="button"
+                  onClick={() => onPrintBol(displayBooking.id)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <IconFileText className="size-4" />
+                  Print BoL
+                </button>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </div>
