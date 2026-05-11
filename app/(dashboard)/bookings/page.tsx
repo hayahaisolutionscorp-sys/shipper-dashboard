@@ -29,23 +29,6 @@ type DateRange = typeof DATE_RANGES[number];
 const DATE_RANGE_LABELS: Record<DateRange, string> = { all: "All Time", today: "Today", week: "This Week", month: "This Month" };
 const PAGE_SIZE = 20;
 
-function isInDateRange(isoDate: string | null, range: DateRange): boolean {
-  if (range === "all" || !isoDate) return true;
-  const date = new Date(isoDate);
-  const now = new Date();
-  if (range === "today") {
-    return date.toDateString() === now.toDateString();
-  }
-  if (range === "week") {
-    const weekAgo = new Date(now);
-    weekAgo.setDate(now.getDate() - 7);
-    return date >= weekAgo;
-  }
-  if (range === "month") {
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  }
-  return true;
-}
 
 export default function BookingsPage() {
   const queryClient = useQueryClient();
@@ -73,11 +56,31 @@ export default function BookingsPage() {
 
   const { mounted: isFilterMounted, dropdownRef: filterDropdownRef } = useGsapDropdownPresence(showFilterPanel);
 
+  const dateRangeParams = (() => {
+    const now = new Date();
+    if (dateRange === "today") {
+      const start = new Date(now); start.setHours(0, 0, 0, 0);
+      const end = new Date(now); end.setHours(23, 59, 59, 999);
+      return { from: start.toISOString(), to: end.toISOString() };
+    }
+    if (dateRange === "week") {
+      const start = new Date(now); start.setDate(now.getDate() - 7); start.setHours(0, 0, 0, 0);
+      return { from: start.toISOString(), to: undefined };
+    }
+    if (dateRange === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: start.toISOString(), to: undefined };
+    }
+    return { from: undefined, to: undefined };
+  })();
+
   const { data, isPending: isLoading } = useQuery({
-    queryKey: ["bookings", statusFilter, page],
+    queryKey: ["bookings", statusFilter, page, dateRange],
     queryFn: () =>
       authService.getBookings({
         status: statusFilter !== "all" ? statusFilter : undefined,
+        from: dateRangeParams.from,
+        to: dateRangeParams.to,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       }),
@@ -96,7 +99,6 @@ export default function BookingsPage() {
           b.route_code?.toLowerCase().includes(term);
         if (!matchesSearch) return false;
       }
-      if (!isInDateRange(b.created_at, dateRange)) return false;
       if (selectedTenants.length > 0 && !selectedTenants.includes(b.tenant_id)) return false;
       return true;
     }) ?? [];
